@@ -26,8 +26,8 @@ const storeRouter = require('./routes/store-router')
 app.use('/store', storeRouter)
 
 // INITIALIZE OUR DATABASE OBJECT
-const connectDB = require('./db')
-connectDB()
+const db = require('./db')
+db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 
 
 // PUT THE SERVER IN LISTENING MODE

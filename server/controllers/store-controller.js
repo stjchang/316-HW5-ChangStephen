@@ -1,5 +1,3 @@
-// const Playlist = require('../models/playlist-model')
-// const User = require('../models/user-model');
 require('dotenv').config();
 const auth = require('../auth')
 const db = require('../db');
