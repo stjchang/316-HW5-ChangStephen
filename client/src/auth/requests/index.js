@@ -115,20 +115,20 @@ export const logoutUser = async () => {
 }
 
 // POST /register
-export const registerUser = async(firstName, lastName, email, password, passwordVerify) => {
+export const registerUser = async(userName, email, password, passwordVerify, avatarImage) => {
     const url = `${API_BASE}/register`;
     try {
         const response = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ firstName, lastName, email, password, passwordVerify }),
+            body: JSON.stringify({ userName, email, password, passwordVerify, avatarImage }),
             credentials: "include",
         });
 
         const result = await response.json();
 
         if (!response.ok) {
-            const error = new Error(`Response status: ${response.status}`);
+            const error = new Error(result.errorMessage || `Response status: ${response.status}`);
             error.data = result;
             throw error;
         }

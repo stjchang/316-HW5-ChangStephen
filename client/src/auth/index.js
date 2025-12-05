@@ -73,20 +73,21 @@ function AuthContextProvider(props) {
         }
     }
 
-    auth.registerUser = async function(firstName, lastName, email, password, passwordVerify) {
+    auth.registerUser = async function(userName, email, password, passwordVerify, avatarImage) {
         try{   
-            const response = await authRequestSender.registerUser(firstName, lastName, email, password, passwordVerify);   
+            const response = await authRequestSender.registerUser(userName, email, password, passwordVerify, avatarImage);   
             if (response.success) {
+                // user must login separately
                 authReducer({
                     type: AuthActionType.REGISTER_USER,
                     payload: {
-                        user: response.user,
-                        loggedIn: true,
+                        user: null,
+                        loggedIn: false,
                         errorMessage: null
                     }
                 })
-                history.push("/login");
-                auth.loginUser(email, password);
+                // redirect to login screen
+                return response;
             }
         } catch(error){
             let errorMessage = "error occurred during reg.";
@@ -103,6 +104,7 @@ function AuthContextProvider(props) {
                     errorMessage: errorMessage
                 }
             })
+            throw error; // Re-throw so RegisterScreen can handle it
         }
     }
 
@@ -145,15 +147,6 @@ function AuthContextProvider(props) {
             payload: null
         })
         history.push("/");
-    }
-
-    auth.getUserInitials = function() {
-        let initials = "";
-        if (auth.user) {
-            initials += auth.user.firstName.charAt(0);
-            initials += auth.user.lastName.charAt(0);
-        }
-        return initials;
     }
 
     return (

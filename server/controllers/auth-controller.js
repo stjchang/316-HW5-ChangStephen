@@ -28,9 +28,9 @@ getLoggedIn = async (req, res) => {
         return res.status(200).json({
             loggedIn: true,
             user: {
-                firstName: loggedInUser.firstName,
-                lastName: loggedInUser.lastName,
-                email: loggedInUser.email
+                userName: loggedInUser.userName,
+                email: loggedInUser.email,
+                avatarImage: loggedInUser.avatarImage
             }
         })
     } catch (err) {
@@ -78,9 +78,9 @@ loginUser = async (req, res) => {
         }).status(200).json({
             success: true,
             user: {
-                firstName: existingUser.firstName,
-                lastName: existingUser.lastName,  
-                email: existingUser.email              
+                userName: existingUser.userName,
+                email: existingUser.email,
+                avatarImage: existingUser.avatarImage
             }
         })
 
@@ -101,8 +101,8 @@ logoutUser = async (req, res) => {
 
 registerUser = async (req, res) => {
     try {
-        const { firstName, lastName, email, password, passwordVerify } = req.body;
-        if (!firstName || !lastName || !email || !password || !passwordVerify) {
+        const { userName, email, password, passwordVerify, avatarImage } = req.body;
+        if (!userName || !email || !password || !passwordVerify) {
             return res
                 .status(400)
                 .json({ errorMessage: "Please enter all required fields." });
@@ -136,28 +136,39 @@ registerUser = async (req, res) => {
         const salt = await bcrypt.genSalt(saltRounds);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const savedUser = await db.createUser({firstName, lastName, email, passwordHash});
-        const userId = savedUser._id || savedUser.id;
+        const userData = {
+            userName,
+            email,
+            passwordHash
+        };
+        
+        if (avatarImage) {
+            userData.avatarImage = avatarImage;
+        }
 
         // LOGIN THE USER
-        const token = auth.signToken(userId);
+        // const token = auth.signToken(userId);
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "none"
-        }).status(200).json({
+        // Per spec 2.1: Account is created but user is NOT logged in
+        // User must login separately
+        return res.status(200).json({
             success: true,
-            user: {
-                firstName: savedUser.firstName,
-                lastName: savedUser.lastName,  
-                email: savedUser.email              
-            }
+            message: "Account created successfully. Please login."
         })
 
     } catch (err) {
         console.error(err);
-        res.status(500).send();
+        if (err.code === 11000) {
+            // (email already exists)
+            return res.status(400).json({
+                success: false,
+                errorMessage: "An account with this email address already exists."
+            });
+        }
+        res.status(500).json({
+            success: false,
+            errorMessage: "An error occurred while creating the account."
+        });
     }
 }
 

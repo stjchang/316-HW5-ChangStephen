@@ -248,9 +248,9 @@ const updatePlaylist = async (req, res) => {
             errorMessage: 'Could not update playlist'
         });
     }
-
-    
 }
+
+
 module.exports = {
     createPlaylist,
     deletePlaylist,
