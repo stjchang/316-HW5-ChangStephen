@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const Playlist = require("../../models/mongo/playlist-model");
-const User = require("../../models/mongo/user-model");
+const Playlist = require("../models/playlist-model");
+const User = require("../models/user-model");
 
 
 mongoose
@@ -12,95 +12,104 @@ mongoose
         console.error('Connection error', e.message)
     })
 
+const dbConnection = mongoose.connection;
 
-class db {
-    constructor(uri) {
-        super();
-        this.db = null;
-        this.uri = uri
-    }
-
-    async initialize() {
+const db = {
+    getUserByEmail: async (email) => {
         try {
-            await mongoose.connect(this.uri, { useNewUrlParser: true });
-            this.db = mongoose.connection;
+            return await User.findOne({ email });
         } catch (error) {
-            console.error('Connection error', error.message);
-        }
-    }
-
-    async close() {
-        try {
-            await mongoose.connection.close();
-        } catch (error) {
-            console.error('error disconnecting mongodb: ', error.message);
-        }
-    }
-
-    //user
-    async getUserByEmail(email) {
-        return await User.findOne({ email });
-    }
-    
-    async getUserById(id) {
-        const user = await User.findById(id);
-        if(!user) {
-            console.error("User not found");
+            console.error('Error getting user by email:', error);
             return null;
         }
+    },
+    
+    getUserById: async (id) => {
+        try {
+            const user = await User.findById(id);
+            if(!user) {
+                console.error("User not found");
+                return null;
+            }
+            return user;
+        } catch (error) {
+            console.error('Error getting user by ID:', error);
+            return null;
+        }
+    },
 
-        return user;
+    createUser: async (userObject) => {
+        try {
+            const newUser = new User(userObject);
+            return await newUser.save();
+        } catch (error) {
+            console.error('Error creating user:', error);
+            throw error;
+        }
+    },
 
-    }
-
-    async createUser(userObject) {
-        const newUser = new User(userObject);
-        return await newUser.save();
-    }
-
-    async updateUserById(id, userObject) {
+    updateUserById: async (id, userObject) => {
         try {
             return await User.findByIdAndUpdate(id, userObject, { new: true });
         } catch (error) {
             console.error('Error updating user:', error);
             throw error;
         }
-    }
+    },
 
-    async deleteUserById(id) {
-        return User.findByIdAndDelete(id);
-    }
+    deleteUserById: async (id) => {
+        try {
+            return await User.findByIdAndDelete(id);
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            throw error;
+        }
+    },
 
-    async createPlaylist(playlistObject) {
-        const createdPlaylist = new Playlist(playlistObject);
-        return createdPlaylist.save();
-    }
+    // Playlist functions
+    createPlaylist: async (playlistObject) => {
+        try {
+            const createdPlaylist = new Playlist(playlistObject);
+            return await createdPlaylist.save();
+        } catch (error) {
+            console.error('Error creating playlist:', error);
+            throw error;
+        }
+    },
 
-    async deletePlaylistById(id) {
-        return Playlist.findByIdAndDelete(id);
-    }
+    deletePlaylistById: async (id) => {
+        try {
+            return await Playlist.findByIdAndDelete(id);
+        } catch (error) {
+            console.error('Error deleting playlist:', error);
+            throw error;
+        }
+    },
 
-    async getPlaylistById(id) {
-        const playlist = await Playlist.findById(id);
-        
-        if(!playlist) {
-            console.error("Playlist not found");
+    getPlaylistById: async (id) => {
+        try {
+            const playlist = await Playlist.findById(id);
+            if(!playlist) {
+                console.error("Playlist not found");
+                return null;
+            }
+            return playlist;
+        } catch (error) {
+            console.error('Error getting playlist by ID:', error);
             return null;
         }
+    },
 
-        return playlist;
-    }
-
-    async getAllPlaylists() {
+    getAllPlaylists: async () => {
         try {
             return await Playlist.find({});
         } catch (error) {
             console.error('getAllPlaylists error: ', error.message);
             throw error;
         }
-    }
+    },
 
-    async getPlaylistPairs(ownerEmail) {
+    getPlaylistPairs: async (ownerEmail) => {
         try {
             const playlists = await Playlist.find({ ownerEmail: ownerEmail }, '_id name');
             return playlists.map((playlist) => ({
@@ -111,11 +120,20 @@ class db {
             console.error('getPlaylistPairs error: ', error.message);
             throw error;
         }
-    }
+    },
 
-    async updatePlaylistById(id, playlistObject) {
-        return await Playlist.findByIdAndUpdate(id, playlistObject, { new: true });
+    updatePlaylistById: async (id, playlistObject) => {
+        try {
+            return await Playlist.findByIdAndUpdate(id, playlistObject, { new: true });
+        } catch (error) {
+            console.error('Error updating playlist:', error);
+            throw error;
+        }
     }
 }
 
-module.exports = db;
+// Export both the connection and helper functions
+module.exports = Object.assign(dbConnection, db);
+
+
+// deleted userByEmail for redundancy, updates to adhere to specs 2, 3, 4.
