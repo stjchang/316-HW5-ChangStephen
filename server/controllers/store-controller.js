@@ -10,9 +10,12 @@ const db = require('../db');
     @author McKilla Gorilla
 */
 const createPlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
+    const userId = auth.verifyUser(req);
+    // If guest
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Unauthorized. Please login to create a playlist.'
         })
     }
     const body = req.body;
@@ -24,7 +27,7 @@ const createPlaylist = async (req, res) => {
     }
 
     try {
-        const user = await db.getUserById(req.userId)
+        const user = await db.getUserById(userId)
         if(!user) {
             return res.status(404).json({
                 errorMessage: 'User not found'
@@ -35,11 +38,11 @@ const createPlaylist = async (req, res) => {
         if (!playlist) {
             return res.status(400).json({ success: false, error: 'Playlist could not be created' })
         }
-        const playlistId = playlist._id || playlist.id;
-        const userId = user._id || user.id;
+        const playlistId = playlist._id
+in         const userObjectId = user._id 
         if (user.playlists) {
             user.playlists.push(playlistId);
-            await db.updateUserById(userId, user);
+            await db.updateUserById(userObjectId, user);
         }
 
         return res.status(201).json({
@@ -53,9 +56,11 @@ const createPlaylist = async (req, res) => {
 }
 
 const deletePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Unauthorized. Please login to delete a playlist.'
         })
     }
 
@@ -75,9 +80,10 @@ const deletePlaylist = async (req, res) => {
         }
 
         const ownerId = owner._id || owner.id;
-        if (ownerId != req.userId) { 
-            return res.status(400).json({
-                errorMessage: 'Authentication error'
+        if (ownerId.toString() !== userId.toString()) { 
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'Forbidden. You can only delete your own playlists.'
             })
         }
 
@@ -97,12 +103,7 @@ const deletePlaylist = async (req, res) => {
 }
 
 const getPlaylistById = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-
+    // everyone can view playlists
     try {
         const playlist = await db.getPlaylistById(req.params.id);
         if (!playlist) {
@@ -112,28 +113,11 @@ const getPlaylistById = async (req, res) => {
             })
         }
 
-        const user = await db.getUserByEmail(playlist.ownerEmail);
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                errorMessage: 'User not found'
-            })
-        }
 
-        const userId = user._id || user.id;
-
-        if (userId == req.userId) {
-            return res.status(200).json({
-                success: true,
-                playlist: playlist
-            });
-        }
-        else {
-            return res.status(400).json({ 
-                success: false,
-                errorMessage: "authentication error" 
-            });
-        }
+        return res.status(200).json({
+            success: true,
+            playlist: playlist
+        });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -144,8 +128,9 @@ const getPlaylistById = async (req, res) => {
 const getPlaylistPairs = async (req, res) => {
     const userId = auth.verifyUser(req);
     if(userId === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Unauthorized. Please login to view your playlists.'
         })
     }
 
@@ -183,25 +168,32 @@ const getPlaylistPairs = async (req, res) => {
     }
 }
 const getPlaylists = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
-        })
-    }
-    const playlists = await db.getAllPlaylists();
-    if (!playlists || playlists.length === 0) {
-        return res.status(404).json({
-            sucess: false, 
-            errorMessage: 'Playlists not found '
-        })
-    }
-    return res.status(200).json({ success: true, data: playlists});
 
+    try {
+        const playlists = await db.getAllPlaylists();
+        if (!playlists || playlists.length === 0) {
+            return res.status(200).json({
+                success: true, 
+                data: []
+            })
+        }
+        return res.status(200).json({ 
+            success: true, 
+            data: playlists
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not retrieve playlists'
+        });
+    }
 }
 const updatePlaylist = async (req, res) => {
-    if(auth.verifyUser(req) === null){
-        return res.status(400).json({
-            errorMessage: 'UNAUTHORIZED'
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Unauthorized. Please login to edit a playlist.'
         })
     }
     const body = req.body
@@ -221,11 +213,11 @@ const updatePlaylist = async (req, res) => {
             })
         }
 
-        const userId = auth.verifyUser(req);
-        const ownerId = owner._id || owner.id;
-        if (ownerId != userId) {
-            return res.status(400).json({
-                errorMessage: 'Authentication error'
+        const ownerId = owner._id;
+        if (ownerId.toString() !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'Forbidden. You can only edit your own playlists.'
             })
         }
 

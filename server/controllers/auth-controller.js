@@ -172,9 +172,114 @@ registerUser = async (req, res) => {
     }
 }
 
+editAccount = async (req, res) => {
+    try {
+        const userId = auth.verifyUser(req);
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                errorMessage: "Unauthorized. Please login to edit your account."
+            });
+        }
+
+        const { userName, email, password, passwordVerify, avatarImage } = req.body;
+        
+        const currentUser = await db.getUserById(userId);
+        if (!currentUser) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: "User not found."
+            });
+        }
+
+        const updateData = {};
+
+        if (userName !== undefined && userName !== null && userName.trim() !== '') {
+            updateData.userName = userName.trim();
+        }
+
+        if (email !== undefined && email !== null && email.trim() !== '') {
+            const trimmedEmail = email.trim();
+            if (trimmedEmail !== currentUser.email) {
+                const existingUser = await db.getUserByEmail(trimmedEmail);
+                if (existingUser && existingUser._id.toString() !== userId.toString()) {
+                    return res.status(400).json({
+                        success: false,
+                        errorMessage: "An account with this email address already exists."
+                    });
+                }
+                updateData.email = trimmedEmail;
+            }
+        }
+
+        if (password !== undefined && password !== null && password !== '') {
+            if (password.length < 8) {
+                return res.status(400).json({
+                    success: false,
+                    errorMessage: "Password must be at least 8 characters."
+                });
+            }
+            if (password !== passwordVerify) {
+                return res.status(400).json({
+                    success: false,
+                    errorMessage: "Passwords do not match."
+                });
+            }
+
+            const saltRounds = 10;
+            const salt = await bcrypt.genSalt(saltRounds);
+            updateData.passwordHash = await bcrypt.hash(password, salt);
+        }
+
+        if (avatarImage !== undefined && avatarImage !== null) {
+            updateData.avatarImage = avatarImage;
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: "No fields to update."
+            });
+        }
+
+        const updatedUser = await db.updateUserById(userId, updateData);
+        if (!updatedUser) {
+            return res.status(500).json({
+                success: false,
+                errorMessage: "Failed to update account."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                userName: updatedUser.userName,
+                email: updatedUser.email,
+                avatarImage: updatedUser.avatarImage
+            },
+            message: "Account updated successfully."
+        });
+
+    } catch (err) {
+        console.error(err);
+        if (err.code === 11000) {
+            // email alr exists in db so error
+            return res.status(400).json({
+                success: false,
+                errorMessage: "An account with this email address already exists."
+            });
+        }
+        return res.status(500).json({
+            success: false,
+            errorMessage: "An error occurred while updating the account."
+        });
+    }
+}
+
 module.exports = {
     getLoggedIn,
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    editAccount
 }
