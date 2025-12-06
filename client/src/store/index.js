@@ -348,8 +348,23 @@ function GlobalStoreContextProvider(props) {
     store.deleteMarkedList = function() {
         store.deleteList(store.listIdMarkedForDeletion);
         store.hideModals();
-        
     }
+
+    store.copyPlaylist = function(id) {
+        async function processCopy(id) {
+            try {
+                const response = await storeRequestSender.copyPlaylist(id);
+                if (response.success) {
+                    return response;
+                }
+            } catch (error) {
+                console.error("Error copying playlist:", error);
+                throw error;
+            }
+        }
+        return processCopy(id);
+    }
+    
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
 
@@ -544,6 +559,7 @@ function GlobalStoreContextProvider(props) {
 
     store.navigateToPlaylists = function() {
         store.closeCurrentList();
+        history.push('/playlists');
     }
 
     store.navigateToSongsCatalog = function() {

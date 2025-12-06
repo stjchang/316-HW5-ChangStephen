@@ -12,6 +12,7 @@ const auth = require('../auth')
 router.post('/playlist', auth.verify, StoreController.createPlaylist)
 router.delete('/playlist/:id', auth.verify, StoreController.deletePlaylist)
 router.put('/playlist/:id', auth.verify, StoreController.updatePlaylist)
+router.post('/playlist/:id/copy', auth.verify, StoreController.copyPlaylist)
 
 // GET ENDPOINTS
 router.get('/playlist/:id', StoreController.getPlaylistById)

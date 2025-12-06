@@ -51,7 +51,7 @@ export default function HomeBar() {
         if (store.navigateToPlaylists) {
             store.navigateToPlaylists();
         } else {
-            history.push('/');
+            history.push('/playlists');
         }
     };
 

@@ -39,7 +39,7 @@ const createPlaylist = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Playlist could not be created' })
         }
         const playlistId = playlist._id
-in         const userObjectId = user._id 
+        const userObjectId = user._id 
         if (user.playlists) {
             user.playlists.push(playlistId);
             await db.updateUserById(userObjectId, user);
@@ -242,6 +242,74 @@ const updatePlaylist = async (req, res) => {
     }
 }
 
+const copyPlaylist = async (req, res) => {
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: ' Login to copy a playlist.'
+        })
+    }
+
+    try {
+        const originalPlaylist = await db.getPlaylistById(req.params.id);
+        if (!originalPlaylist) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Playlist not found'
+            })
+        }
+
+        const user = await db.getUserById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'User not found'
+            })
+        }
+
+        const copiedPlaylistData = {
+            name: "Copy of " + originalPlaylist.name,
+            ownerEmail: user.email,
+            songs: originalPlaylist.songs.map(song => ({
+                title: song.title,
+                artist: song.artist,
+                year: song.year,
+                youTubeId: song.youTubeId,
+                ownerEmail: song.ownerEmail
+            }))
+        };
+
+        const newPlaylist = await db.createPlaylist(copiedPlaylistData);
+        if (!newPlaylist) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'Playlist could not be copied'
+            })
+        }
+
+        const playlistId = newPlaylist._id;
+        const userObjectId = user._id;
+
+        if (user.playlists) {
+            user.playlists.push(playlistId);
+            await db.updateUserById(userObjectId, user);
+        }
+
+        return res.status(201).json({
+            success: true,
+            playlist: newPlaylist
+        });
+        
+    } catch (error) {
+        console.error("copyPlaylist error:", error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not copy playlist'
+        });
+    }
+}
+
 
 module.exports = {
     createPlaylist,
@@ -249,5 +317,6 @@ module.exports = {
     getPlaylistById,
     getPlaylistPairs,
     getPlaylists,
-    updatePlaylist
+    updatePlaylist,
+    copyPlaylist
 }
