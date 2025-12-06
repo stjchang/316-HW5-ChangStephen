@@ -537,6 +537,31 @@ function GlobalStoreContextProvider(props) {
         });
     }
 
+    // NAV HELPERS
+    store.navigateToHome = function() {
+        store.closeCurrentList();
+    }
+
+    store.navigateToPlaylists = function() {
+        store.closeCurrentList();
+    }
+
+    store.navigateToSongsCatalog = function() {
+        history.push('/songs');
+    }
+
+    store.navigateToLogin = function() {
+        history.push('/login/');
+    }
+
+    store.navigateToRegister = function() {
+        history.push('/register/');
+    }
+
+    store.navigateToEditAccount = function() {
+        history.push('/edit-account/');
+    }
+
     function KeyPress(event) {
         if (!store.modalOpen && event.ctrlKey){
             if(event.key === 'z'){
@@ -547,7 +572,7 @@ function GlobalStoreContextProvider(props) {
             }
         }
     }
-  
+
     document.onkeydown = (event) => KeyPress(event);
 
     return (
