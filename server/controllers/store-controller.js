@@ -374,17 +374,6 @@ const addSongToPlaylist = async (req, res) => {
             })
         }
 
-        const isDuplicate = playlist.songs.some(s => s.title === song.title && s.artist === song.artist 
-            && s.year === song.year
-        );
-
-        if (isDuplicate) {
-            return res.status(400).json({
-                success: false,
-                errorMessage: 'This song already exists in the playlist'
-            })
-        }
-
         const newSong = {
             title: song.title,
             artist: song.artist,
@@ -403,6 +392,22 @@ const addSongToPlaylist = async (req, res) => {
 
         const result = await db.updatePlaylistById(req.params.id, updatedPlaylist);
 
+        try {
+            const catalogSong = await db.getSongByTitleArtistYear(song.title, song.artist, song.year);
+            if (catalogSong) {
+                const playlistId = result._id;
+                if (!catalogSong.playlists || !catalogSong.playlists.includes(playlistId)) {
+                    // spread existing playlists with new playlist id or create new playlist and spread to added playlist id
+                    const updatedPlaylists = [...(catalogSong.playlists || []), playlistId];
+                    await db.updateSongById(catalogSong._id, { playlists: updatedPlaylists });
+                }
+            }
+        } catch (error) {
+            // dont fail since we should still add song to playlist if song is not in catalog
+            console.error("Error updating song catalog:", error);
+            
+        }
+
         return res.status(200).json({
             success: true,
             playlist: result
@@ -418,6 +423,263 @@ const addSongToPlaylist = async (req, res) => {
 }
 
 
+// -------------------------- SONGS CATALOG FUNCTIONS --------------------------
+const getAllSongs = async (req, res) => {
+    try {
+        const songs = await db.getAllSongs();
+        return res.status(200).json({
+            success: true,
+            data: songs || []
+        });
+    } catch (error) {
+        console.error("getAllSongs error:", error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not retrieve songs'
+        });
+    }
+}
+
+const createSong = async (req, res) => {
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Login to add songs to catalog.'
+        })
+    }
+
+    try {
+        const { title, artist, year, youTubeId } = req.body;
+        
+        if (!title || !artist || year === undefined || !youTubeId) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'all fields are required'
+            });
+        }
+
+        const user = await db.getUserById(userId);
+        if (!user || !user.email) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'User not found'
+            });
+        }
+
+        const existingSong = await db.getSongByTitleArtistYear(title, artist, year);
+        if (existingSong) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'A song with this title, artist, and year already exists in the catalog.'
+            });
+        }
+
+        const songData = {
+            title: title.trim(),
+            artist: artist.trim(),
+            year: parseInt(year),
+            youTubeId: youTubeId.trim(),
+            ownerEmail: user.email,
+            listens: 0,
+            playlists: []
+        };
+
+        const newSong = await db.createSong(songData);
+        
+        return res.status(201).json({
+            success: true,
+            song: newSong
+        });
+
+    } catch (error) {
+        console.error("createSong error:", error);
+        // dupicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'A song with this title, artist, and year already exists.'
+            });
+        }
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'failed to add song to catalog'
+        });
+    }
+}
+
+const updateSong = async (req, res) => {
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'login to edit songs.'
+        })
+    }
+
+    try {
+        const songId = req.params.id;
+        const existingSong = await db.getSongById(songId);
+        
+        if (!existingSong) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Song not found'
+            });
+        }
+
+        const user = await db.getUserById(userId);
+        if (!user || user.email !== existingSong.ownerEmail) {
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'You can only edit songs you added to the catalog.'
+            });
+        }
+
+        const { title, artist, year, youTubeId } = req.body;
+        
+        // check for duplicate
+        if (title && artist && year !== undefined) {
+            const duplicate = await db.getSongByTitleArtistYear(title, artist, year);
+            if (duplicate && duplicate._id.toString() !== songId) {
+                return res.status(400).json({
+                    success: false,
+                    errorMessage: 'Duplicate song exists in catalogg.'
+                });
+            }
+        }
+
+        const dataToUpdate = {};
+        if (title !== undefined) {
+            dataToUpdate.title = title.trim();
+        }
+        if (artist !== undefined) {
+            dataToUpdate.artist = artist.trim();
+        }
+        if (year !== undefined) {
+            dataToUpdate.year = parseInt(year);
+        }
+        if (youTubeId !== undefined) {
+            dataToUpdate.youTubeId = youTubeId.trim();
+        }
+
+        const updatedSong = await db.updateSongById(songId, dataToUpdate);
+        
+        // update every song in playlists that contain the song
+        if (existingSong.playlists && existingSong.playlists.length > 0) {
+            // for every song in the playlist, update the song with dataToUpdate
+            for (const playlistId of existingSong.playlists) {
+                const playlist = await db.getPlaylistById(playlistId);
+                if (playlist && playlist.songs) {
+                    const updatedSongs = playlist.songs.map(song => {
+                        // match by title, artist, year
+                        if (song.title === existingSong.title && 
+                            song.artist === existingSong.artist && 
+                            song.year === existingSong.year) {
+                            return {
+                                ...song,
+                                title: dataToUpdate.title || song.title,
+                                artist: dataToUpdate.artist || song.artist,
+                                year: dataToUpdate.year !== undefined ? dataToUpdate.year : song.year,
+                                youTubeId: dataToUpdate.youTubeId || song.youTubeId
+                            };
+                        }
+                        return song;
+                    });
+                    
+                    await db.updatePlaylistById(playlistId, {
+                        name: playlist.name,
+                        songs: updatedSongs,
+                        ownerEmail: playlist.ownerEmail,
+                        listeners: playlist.listeners || []
+                    });
+                }
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            song: updatedSong
+        });
+
+    } catch (error) {
+        console.error("updateSong error:", error);
+        // duplicate key error
+        if (error.code === 11000) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'Duplicate song exists in the catalog.'
+            });
+        }
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not update song'
+        });
+    }
+}
+
+const deleteSong = async (req, res) => {
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Please login to remove songs.'
+        })
+    }
+
+    try {
+        const songId = req.params.id;
+        const song = await db.getSongById(songId);
+        
+        if (!song) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'song not found'
+            });
+        }
+
+        if (!user || user.email !== song.ownerEmail) {
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'You can only remove songs you added to the catalog.'
+            });
+        }
+
+        if (song.playlists && song.playlists.length > 0) {
+            for (const playlistId of song.playlists) {
+                const playlist = await db.getPlaylistById(playlistId);
+                if (playlist && playlist.songs) {
+                    const filteredSongs = playlist.songs.filter(s => 
+                        !(s.title === song.title && s.artist === song.artist &&  s.year === song.year)
+                    );
+                    
+                    await db.updatePlaylistById(playlistId, {
+                        name: playlist.name,
+                        songs: filteredSongs,
+                        ownerEmail: playlist.ownerEmail,
+                        listeners: playlist.listeners || []
+                    });
+                }
+            }
+        }
+
+        // del the song from catalog
+        await db.deleteSongById(songId);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Song removed from catalog and all playlists including it'
+        });
+
+    } catch (error) {
+        console.error("deleteSong error:", error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not remove song'
+        });
+    }
+}
+
 module.exports = {
     createPlaylist,
     deletePlaylist,
@@ -426,5 +688,9 @@ module.exports = {
     getPlaylists,
     updatePlaylist,
     copyPlaylist,
-    addSongToPlaylist
+    addSongToPlaylist,
+    getAllSongs,
+    createSong,
+    updateSong,
+    deleteSong
 }

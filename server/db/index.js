@@ -4,6 +4,7 @@ dotenv.config();
 
 const Playlist = require("../models/playlist-model");
 const User = require("../models/user-model");
+const Song = require("../models/song-model");
 
 
 mongoose
@@ -129,10 +130,78 @@ const db = {
             console.error('Error updating playlist:', error);
             throw error;
         }
+    },
+
+    getAllSongs: async () => {
+        try {
+            return await Song.find({});
+        } catch (error) {
+            console.error('Error getting all songs:', error);
+            throw error;
+        }
+    },
+
+    getSongById: async (id) => {
+        try {
+            const song = await Song.findById(id);
+            if(!song) {
+                console.error("Song not found");
+                return null;
+            }
+            return song;
+        } catch (error) {
+            console.error('Error getting song by ID:', error);
+            return null;
+        }
+    },
+
+    getSongByTitleArtistYear: async (title, artist, year) => {
+        try {
+            return await Song.findOne({ title, artist, year });
+        } catch (error) {
+            console.error('Error getting song by title/artist/year:', error);
+            return null;
+        }
+    },
+
+    createSong: async (songObject) => {
+        try {
+            const newSong = new Song(songObject);
+            return await newSong.save();
+        } catch (error) {
+            console.error('Error creating song:', error);
+            throw error;
+        }
+    },
+
+    updateSongById: async (id, songObject) => {
+        try {
+            return await Song.findByIdAndUpdate(id, songObject, { new: true });
+        } catch (error) {
+            console.error('Error updating song:', error);
+            throw error;
+        }
+    },
+
+    deleteSongById: async (id) => {
+        try {
+            return await Song.findByIdAndDelete(id);
+        } catch (error) {
+            console.error('Error deleting song:', error);
+            throw error;
+        }
+    },
+
+    getSongsByOwner: async (ownerEmail) => {
+        try {
+            return await Song.find({ ownerEmail });
+        } catch (error) {
+            console.error('Error getting songs by owner:', error);
+            throw error;
+        }
     }
 }
 
-// Export both the connection and helper functions
 module.exports = Object.assign(dbConnection, db);
 
 

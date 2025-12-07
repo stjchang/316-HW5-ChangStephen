@@ -186,6 +186,98 @@ export async function addSongToPlaylist(playlistId, song) {
     }
 }
 
+// Catalog API functions
+// GET /store/songs
+export async function getAllSongs() {
+    const url = `${API_BASE}/songs`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("getAllSongs error:", error.message);
+        throw error;
+    }
+}
+
+// POST /store/song
+export async function createSong(title, artist, year, youTubeId) {
+    const url = `${API_BASE}/song`;
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, artist, year, youTubeId }),
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.errorMessage || `Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("createSong error:", error.message);
+        throw error;
+    }
+}
+
+// PUT /store/song/:id
+export async function updateSong(id, title, artist, year, youTubeId) {
+    const url = `${API_BASE}/song/${id}`;
+    try {
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, artist, year, youTubeId }),
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.errorMessage || `Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("updateSong error:", error.message);
+        throw error;
+    }
+}
+
+// DELETE /store/song/:id
+export async function deleteSong(id) {
+    const url = `${API_BASE}/song/${id}`;
+    try {
+        const response = await fetch(url, {
+            method: "DELETE",
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.errorMessage || `Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("deleteSong error:", error.message);
+        throw error;
+    }
+}
+
 const apis = {
     createPlaylist,
     deletePlaylist,
@@ -195,6 +287,10 @@ const apis = {
     getAllPlaylists,
     copyPlaylist,
     addSongToPlaylist,
+    getAllSongs,
+    createSong,
+    updateSong,
+    deleteSong,
 }
 
 export default apis
