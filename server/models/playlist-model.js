@@ -18,7 +18,8 @@ const playlistSchema = new Schema(
             year: Number,
             youTubeId: String,
             ownerEmail: String
-        }], required: true }
+        }], required: true },
+        listeners: { type: [String], default: [] } 
     },
     { timestamps: true },
 )
