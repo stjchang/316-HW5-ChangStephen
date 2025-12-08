@@ -141,12 +141,40 @@ export const registerUser = async(userName, email, password, passwordVerify, ava
     }
 }
 
+// PUT /edit
+export const editAccount = async(userName, email, password, passwordVerify, avatarImage) => {
+    const url = `${API_BASE}/edit`;
+    try {
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userName, email, password, passwordVerify, avatarImage }),
+            credentials: "include",
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            const error = new Error(result.errorMessage || `Response status: ${response.status}`);
+            error.data = result;
+            throw error;
+        }
+
+        return result;
+
+    } catch (error) {
+        console.error("editAccount error:", error.message);
+        throw error;
+    }
+}
+
 
 const apis = {
     getLoggedIn,
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    editAccount
 }
 
 export default apis;

@@ -1,71 +1,123 @@
-import { useContext, useEffect } from 'react'
-import { GlobalStoreContext } from '../store'
-import PlaylistCard from './PlaylistCard.js'
-import MUIDeleteModal from './MUIDeleteModal'
+import { useHistory } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import ListIcon from '@mui/icons-material/List';
 
-import AddIcon from '@mui/icons-material/Add';
-import Fab from '@mui/material/Fab'
-import List from '@mui/material/List';
-import Box from '@mui/material/Box'
-/*
-    This React component lists all the top5 lists in the UI.
-    
-    @author McKilla Gorilla
-*/
+
 const HomeScreen = () => {
-    const { store } = useContext(GlobalStoreContext);
+    const history = useHistory();
 
-    useEffect(() => {
-        store.loadIdNamePairs();
-    }, []);
+    const handleContinueAsGuest = () => {
+        history.push('/playlists');
+    };
 
-    function handleCreateNewList() {
-        store.createNewList();
-    }
-    let listCard = "";
-    if (store) {
-        listCard = 
-            <List sx={{width: '100%', bgcolor: 'background.paper', mb:"20px" }}>
-            {
-                store.idNamePairs.map((pair) => (
-                    <PlaylistCard
-                        key={pair._id}
-                        idNamePair={pair}
-                        selected={false}
-                    />
-                ))
-                
-            }
-            <Fab sx={{transform:"translate(1150%, 10%)"}}
-                color="primary" 
-                aria-label="add"
-                id="add-list-button"
-                onClick={handleCreateNewList}
-            >
-                <AddIcon />
-            </Fab>
-            </List>;
-    }
+    const handleLogin = () => {
+        history.push('/login/');
+    };
+
+    const handleCreateAccount = () => {
+        history.push('/register/');
+    };
+
     return (
-        <div id="playlist-selector">
-            <div id="list-selector-heading">
-            <Fab sx={{transform:"translate(-20%, 0%)"}}
-                color="primary" 
-                aria-label="add"
-                id="add-list-button"
-                onClick={handleCreateNewList}
+        <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 'calc(100vh - 64px)',
+            bgcolor: '#FFFACD',
+            p: 4,
+            border: '1px solid #000'
+        }}>
+            <Typography 
+                variant="h3" 
+                component="h1"
+                sx={{
+                    fontWeight: 'bold',
+                    mb: 4,
+                    color: '#000',
+                    fontSize: '3rem'
+                }}
             >
-                <AddIcon />
-            </Fab>
-                Your Playlists
-            </div>
-            <Box sx={{bgcolor:"background.paper"}} id="list-selector-list">
-                {
-                    listCard
-                }
-                <MUIDeleteModal />
+                The Playlister
+            </Typography>
+
+            <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 2,
+                mb: 6
+            }}>
+                <MusicNoteIcon sx={{ fontSize: 80, color: '#000' }} />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ width: 60, height: 8, bgcolor: '#000', borderRadius: 1 }} />
+                    <Box sx={{ width: 60, height: 8, bgcolor: '#000', borderRadius: 1 }} />
+                    <Box sx={{ width: 60, height: 8, bgcolor: '#000', borderRadius: 1 }} />
+                </Box>
             </Box>
-        </div>)
+
+            <Box sx={{ 
+                display: 'flex', 
+                gap: 3,
+                mt: 4
+            }}>
+                <Button
+                    variant="contained"
+                    onClick={handleContinueAsGuest}
+                    sx={{
+                        bgcolor: '#424242',
+                        color: '#fff',
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1rem',
+                        textTransform: 'none',
+                        '&:hover': {
+                            bgcolor: '#616161'
+                        }
+                    }}
+                >
+                    Continue as Guest
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleLogin}
+                    sx={{
+                        bgcolor: '#424242',
+                        color: '#fff',
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1rem',
+                        textTransform: 'none',
+                        '&:hover': {
+                            bgcolor: '#616161'
+                        }
+                    }}
+                >
+                    Login
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={handleCreateAccount}
+                    sx={{
+                        bgcolor: '#424242',
+                        color: '#fff',
+                        px: 4,
+                        py: 1.5,
+                        fontSize: '1rem',
+                        textTransform: 'none',
+                        '&:hover': {
+                            bgcolor: '#616161'
+                        }
+                    }}
+                >
+                    Create Account
+                </Button>
+            </Box>
+        </Box>
+    );
 }
 
 export default HomeScreen;
