@@ -1,9 +1,9 @@
 import { useContext, useEffect, useState } from 'react';
-import { useHistory } from 'react-router-dom';
 import AuthContext from '../auth';
 import { GlobalStoreContext } from '../store';
 import storeRequestSender from '../store/requests';
 import MUIDeleteModal from './MUIDeleteModal';
+import MUIEditPlaylistModal from './MUIEditPlaylistModal';
 import PlaylistCard from './PlaylistCard';
 
 import AddIcon from '@mui/icons-material/Add';
@@ -28,6 +28,8 @@ export default function PlaylistsScreen() {
     const [playlists, setPlaylists] = useState([]);
     const [filteredPlaylists, setFilteredPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingPlaylist, setEditingPlaylist] = useState(null);
+    const [showEditModal, setShowEditModal] = useState(false);
     
     // left side search fields
     const [searchByName, setSearchByName] = useState('');
@@ -35,7 +37,7 @@ export default function PlaylistsScreen() {
     const [searchBySongTitle, setSearchBySongTitle] = useState('');
     const [searchBySongArtist, setSearchBySongArtist] = useState('');
     const [searchBySongYear, setSearchBySongYear] = useState('');
-    const [sortBy, setSortBy] = useState('listeners-hi-lo');
+    const [sortBy, setSortBy] = useState('listenerNames-hi-lo');
 
     useEffect(() => {
         loadPlaylists();
@@ -114,15 +116,15 @@ export default function PlaylistsScreen() {
 
         filtered.sort((a, b) => {
             switch (sortBy) {
-                case 'listeners-hi-lo':
-                    const listenersA = (a.listeners && a.listeners.length) || 0;
-                    const listenersB = (b.listeners && b.listeners.length) || 0;
-                    return listenersB - listenersA;
+                case 'listenerNames-hi-lo':
+                    const listenerNamesA = (a.listenerNames && a.listenerNames.length) || 0;
+                    const listenerNamesB = (b.listenerNames && b.listenerNames.length) || 0;
+                    return listenerNamesB - listenerNamesA;
                 
-                case 'listeners-lo-hi':
-                    const listenersALo = (a.listeners && a.listeners.length) || 0;
-                    const listenersBLo = (b.listeners && b.listeners.length) || 0;
-                    return listenersALo - listenersBLo;
+                case 'listenerNames-lo-hi':
+                    const listenerNamesALo = (a.listenerNames && a.listenerNames.length) || 0;
+                    const listenerNamesBLo = (b.listenerNames && b.listenerNames.length) || 0;
+                    return listenerNamesALo - listenerNamesBLo;
                 
                 case 'name-asc':
                     return a.name.localeCompare(b.name);
@@ -169,11 +171,28 @@ export default function PlaylistsScreen() {
             );
             if (response.playlist) {
                 await loadPlaylists();
-                // should navigate to edit playlist modal on create
+                setEditingPlaylist(response.playlist);
+                setShowEditModal(true);
             }
         } catch (error) {
             console.error("Error creating playlist:", error);
         }
+    };
+
+    const handleEditPlaylistComplete = async (playlistData) => {
+        if (editingPlaylist) {
+            try {
+                const updatedPlaylist = { ...editingPlaylist, name: playlistData.name };
+                const response = await storeRequestSender.updatePlaylist(editingPlaylist._id, updatedPlaylist);
+                if (response.success) {
+                    await loadPlaylists();
+                }
+            } catch (error) {
+                console.error("Error updating playlist:", error);
+            }
+        }
+        setShowEditModal(false);
+        setEditingPlaylist(null);
     };
 
     const handleSortChange = (event) => {
@@ -369,8 +388,8 @@ export default function PlaylistsScreen() {
                                     },
                                 }}
                             >
-                                <MenuItem value="listeners-hi-lo">Listeners (Hi-Lo)</MenuItem>
-                                <MenuItem value="listeners-lo-hi">Listeners (Lo-Hi)</MenuItem>
+                                <MenuItem value="listenerNames-hi-lo">Listener Count (Hi-Lo)</MenuItem>
+                                <MenuItem value="listenerNames-lo-hi">Listener Count (Lo-Hi)</MenuItem>
                                 <MenuItem value="name-asc">Playlist Name (A-Z)</MenuItem>
                                 <MenuItem value="name-desc">Playlist Name (Z-A)</MenuItem>
                                 <MenuItem value="user-asc">User Name (A-Z)</MenuItem>
@@ -410,7 +429,7 @@ export default function PlaylistsScreen() {
                                 }}
                                 onDelete={() => store.markListForDeletion(playlist._id)}
                                 isOwner={auth.loggedIn && playlist.ownerEmail === auth.user?.email}
-                                listenerCount={(playlist.listeners && playlist.listeners.length) || 0}
+                                listenerNamesCount={(playlist.listenerNames && playlist.listenerNames.length) || 0}
                             />
                         ))
                     )}
@@ -435,6 +454,15 @@ export default function PlaylistsScreen() {
             </Box>
 
             <MUIDeleteModal />
+            <MUIEditPlaylistModal
+                open={showEditModal}
+                onClose={() => {
+                    setShowEditModal(false);
+                    setEditingPlaylist(null);
+                }}
+                onSubmit={handleEditPlaylistComplete}
+                playlist={editingPlaylist}
+            />
         </Box>
     );
 }

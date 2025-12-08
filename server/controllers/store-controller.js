@@ -112,17 +112,17 @@ const getPlaylistById = async (req, res) => {
             })
         }
 
-        // track listener if user is logged in
+        // track listenerNames if user is logged in
         const userId = auth.verifyUser(req);
         if (userId !== null) {
             const user = await db.getUserById(userId);
-            if (user && user.email && playlist.listeners) {
-                if (!playlist.listeners.includes(user.email)) {
-                    playlist.listeners.push(user.email);
-                    await db.updatePlaylistById(req.params.id, { listeners: playlist.listeners });
+            if (user && user.email && playlist.listenerNamess) {
+                if (!playlist.listenerNamess.includes(user.email)) {
+                    playlist.listenerNamess.push(user.email);
+                    await db.updatePlaylistById(req.params.id, { listenerNamess: playlist.listenerNamess });
                 }
             } else if (user && user.email) {
-                await db.updatePlaylistById(req.params.id, { listeners: [user.email] });
+                await db.updatePlaylistById(req.params.id, { listenerNamess: [user.email] });
             }
         }
 
@@ -238,7 +238,7 @@ const updatePlaylist = async (req, res) => {
             name: playlistData.name,
             songs: playlistData.songs,
             ownerEmail: existingPlaylist.ownerEmail,
-            listeners: existingPlaylist.listeners || []
+            listenerNamess: existingPlaylist.listenerNamess || []
         };
 
         await db.updatePlaylistById(req.params.id, updatedPlaylist);
@@ -387,7 +387,7 @@ const addSongToPlaylist = async (req, res) => {
             name: playlist.name,
             songs: updatedSongs,
             ownerEmail: playlist.ownerEmail,
-            listeners: playlist.listeners || []
+            listenerNamess: playlist.listenerNamess || []
         };
 
         const result = await db.updatePlaylistById(req.params.id, updatedPlaylist);
@@ -418,6 +418,95 @@ const addSongToPlaylist = async (req, res) => {
         return res.status(500).json({
             success: false,
             errorMessage: 'Could not add song to playlist'
+        });
+    }
+}
+
+const removeSongFromPlaylist = async (req, res) => {
+    const userId = auth.verifyUser(req);
+    if(userId === null){
+        return res.status(401).json({
+            success: false,
+            errorMessage: 'Login to remove songs from a playlist.'
+        })
+    }
+
+    try {
+        const playlist = await db.getPlaylistById(req.params.id);
+        if (!playlist) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Playlist not found'
+            })
+        }
+
+        const owner = await db.getUserByEmail(playlist.ownerEmail);
+        if (!owner) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Owner not found'
+            })
+        }
+
+        const ownerId = owner._id;
+        if (ownerId.toString() !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                errorMessage: 'You can only remove songs from your own playlists'
+            })
+        }
+
+        const { song } = req.body;
+        if (!song || !song.title || !song.artist || song.year === undefined) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'Song data is required'
+            })
+        }
+
+
+        // filter anything that isn't the song to remove
+        const updatedSongs = (playlist.songs).filter(s => 
+            !(s.title === song.title && s.artist === song.artist && s.year === song.year)
+        );
+
+        const updatedPlaylist = {
+            name: playlist.name,
+            songs: updatedSongs,
+            ownerEmail: playlist.ownerEmail,
+            listeners: playlist.listeners || []
+        };
+
+        const result = await db.updatePlaylistById(req.params.id, updatedPlaylist);
+
+        // remove this playlist from the song's playlists array
+        try {
+            const catalogSong = await db.getSongByTitleArtistYear(song.title, song.artist, song.year);
+            if (catalogSong && catalogSong.playlists) {
+                const playlistId = result._id;
+                const updatedPlaylists = catalogSong.playlists.filter(
+                    pid => pid.toString() !== playlistId.toString()
+                );
+                await db.updateSongById(catalogSong._id, { playlists: updatedPlaylists });
+            }
+        } catch (error) {
+            console.error("Error updating song catalog:", error);
+            return res.status(500).json({
+                success: false,
+                errorMessage: 'Could not remove song from playlist'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            playlist: result
+        });
+
+    } catch (error) {
+        console.error("removeSongFromPlaylist error:", error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Could not remove song from playlist'
         });
     }
 }
@@ -591,7 +680,7 @@ const updateSong = async (req, res) => {
                         name: playlist.name,
                         songs: updatedSongs,
                         ownerEmail: playlist.ownerEmail,
-                        listeners: playlist.listeners || []
+                        listenerNamess: playlist.listenerNamess || []
                     });
                 }
             }
@@ -657,7 +746,7 @@ const deleteSong = async (req, res) => {
                         name: playlist.name,
                         songs: filteredSongs,
                         ownerEmail: playlist.ownerEmail,
-                        listeners: playlist.listeners || []
+                        listenerNamess: playlist.listenerNamess || []
                     });
                 }
             }
@@ -680,6 +769,7 @@ const deleteSong = async (req, res) => {
     }
 }
 
+
 module.exports = {
     createPlaylist,
     deletePlaylist,
@@ -689,6 +779,7 @@ module.exports = {
     updatePlaylist,
     copyPlaylist,
     addSongToPlaylist,
+    removeSongFromPlaylist,
     getAllSongs,
     createSong,
     updateSong,

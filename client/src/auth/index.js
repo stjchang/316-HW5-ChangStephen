@@ -120,7 +120,7 @@ function AuthContextProvider(props) {
                         errorMessage: null
                     }
                 })
-                history.push("/");
+                history.push("/playlists");
             }
         } catch(error){
             let errorMessage = "Wrong email or password provided.";

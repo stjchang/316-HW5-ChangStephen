@@ -186,6 +186,30 @@ export async function addSongToPlaylist(playlistId, song) {
     }
 }
 
+// DELETE /playlist/:id/song
+export async function removeSongFromPlaylist(playlistId, song) {
+    const url = `${API_BASE}/playlist/${playlistId}/song`;
+    try {
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ song }),
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            const result = await response.json();
+            throw new Error(result.errorMessage || `Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error("removeSongFromPlaylist error:", error.message);
+        throw error;
+    }
+}
+
 // Catalog API functions
 export async function getSongById(id) {
     const url = `${API_BASE}/song/${id}`;

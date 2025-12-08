@@ -27,7 +27,7 @@ function PlaylistCard(props) {
     const playlistName = playlist.name || '';
     const playlistId = playlist._id || '';
     const ownerEmail = playlist.ownerEmail || '';
-    const listenerCount = props.listenerCount || (playlist.listeners?.length || 0);
+    const listenerNamesCount = props.listenerNamesCount || (playlist.listenerNames?.length || 0);
     const isOwner = props.isOwner || false;
 
     const handlePlay = () => {
@@ -99,7 +99,7 @@ function PlaylistCard(props) {
                     <AccountCircle sx={{ fontSize: 35 }} />
                 </Avatar>
 
-                {/* Playlist Name, Owner, and Listener Count */}
+                {/* Playlist Name, Owner, and listenerNames Count */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                         {playlistName}
@@ -108,7 +108,7 @@ function PlaylistCard(props) {
                         {ownerEmail}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 'medium' }}>
-                        {listenerCount} Listener{listenerCount !== 1 ? 's' : ''}
+                        {listenerNamesCount} Listener{listenerNamesCount !== 1 ? 's' : ''}
                     </Typography>
                 </Box>
 
@@ -209,12 +209,12 @@ function PlaylistCard(props) {
                 </Box>
             )}
             
-            {/* <MUIEditPlaylistModal
+            <MUIEditPlaylistModal
                 open={showEditModal}
                 onClose={() => setShowEditModal(false)}
                 onSubmit={handleEditPlaylistComplete}
                 playlist={playlist}
-            /> */}
+            />
         </Box>
     );
 }

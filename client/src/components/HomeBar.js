@@ -48,8 +48,6 @@ export default function HomeBar() {
         } else {
             if (store.navigateToHome) {
                 store.navigateToHome();
-            } else if (store.closeCurrentList) {
-                store.closeCurrentList();
             } else {
                 history.push('/');
             }
