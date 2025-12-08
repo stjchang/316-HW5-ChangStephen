@@ -2,7 +2,6 @@ import { useContext, useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import AuthContext from '../auth';
 import { GlobalStoreContext } from '../store';
-
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -25,6 +24,10 @@ export default function HomeBar() {
     // Determine if we're on an auth screen (register/login/edit account)
     const isAuthScreen = location.pathname === '/login/' || location.pathname === '/register/' || 
                         location.pathname === '/edit-account/';
+    
+    const isOnPlaylistsScreen = location.pathname === '/playlists';
+    const isOnCatalogScreen = location.pathname === '/songs';
+    const shouldHideButtons = !isOnPlaylistsScreen && !isOnCatalogScreen;
 
     const handleProfileMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -40,10 +43,16 @@ export default function HomeBar() {
     };
 
     const handleHomeClick = () => {
-        if (store.navigateToHome) {
-            store.navigateToHome();
-        } else if (store.closeCurrentList) {
-            store.closeCurrentList();
+        if (auth.loggedIn) {
+            history.push('/playlists');
+        } else {
+            if (store.navigateToHome) {
+                store.navigateToHome();
+            } else if (store.closeCurrentList) {
+                store.closeCurrentList();
+            } else {
+                history.push('/');
+            }
         }
     };
 
@@ -55,11 +64,11 @@ export default function HomeBar() {
         }
     };
 
-    const handleSongsCatalogClick = () => {
-        if (store.navigateToSongsCatalog) {
-            store.navigateToSongsCatalog();
+    const handleCatalogClick = () => {
+        if (store.navigateToCatalog) {
+            store.navigateToCatalog();
         } else {
-            history.push('/songs');
+            history.push('/catalog');
         }
     };
 
@@ -147,7 +156,7 @@ export default function HomeBar() {
             } else if (auth.user.userName) {
                 const initials = auth.user.userName.substring(0, 2).toUpperCase();
                 return (
-                    <Avatar sx={{ width: 40, height: 40, bgcolor: 'secondary.main' }}>
+                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#8932CC' }}>
                         {initials}
                     </Avatar>
                 );
@@ -160,6 +169,7 @@ export default function HomeBar() {
         <Box sx={{ flexGrow: 1 }}>
             <AppBar position="static">
                 <Toolbar>
+                    {/* "Home Button" Linked to Home Screen if Logged In  */}
                     <Typography
                         variant="h6"
                         component="div"
@@ -172,30 +182,44 @@ export default function HomeBar() {
                     >
                         The Playlister
                     </Typography>
-
+                        
+                        {/* Playlist and Song Catalog Buttons */}
                     {!isAuthScreen && (
                         <Box sx={{ flexGrow: 1, display: 'flex', gap: 2 }}>
                             <Button 
-                                color="blue" 
+                                color="inherit" 
                                 onClick={handlePlaylistsClick}
-                                sx={{ textTransform: 'none' }}
+                                disabled={shouldHideButtons}
+                                sx={{ 
+                                    textTransform: 'none',
+                                    filter: shouldHideButtons ? 'blur(2px)' : 'none',
+                                    opacity: shouldHideButtons ? 0 : 1,
+                                    pointerEvents: shouldHideButtons ? 'none' : 'auto'
+                                }}
                             >
                                 Playlists
                             </Button>
-                            {auth.loggedIn && (
+                            {/* {auth.loggedIn && (
                                 <Button 
-                                    color="blue" 
-                                    onClick={handleSongsCatalogClick}
-                                    sx={{ textTransform: 'none' }}
+                                    color="inherit" 
+                                    onClick={handleCatalogClick}
+                                    disabled={shouldHideButtons}
+                                    sx={{ 
+                                        textTransform: 'none',
+                                        filter: shouldHideButtons ? 'blur(2px)' : 'none',
+                                        opacity: shouldHideButtons ? 0 : 1,
+                                        pointerEvents: shouldHideButtons ? 'none' : 'auto'
+                                    }}
                                 >
-                                    Songs Catalog
+                                    Song Catalog
                                 </Button>
-                            )}
+                            )} */}
                         </Box>
                     )}
 
                     {isAuthScreen && <Box sx={{ flexGrow: 1 }} />}
 
+                    {/* Account Icon Button */}
                     <Box>
                         <IconButton
                             size="large"
@@ -204,7 +228,7 @@ export default function HomeBar() {
                             aria-controls={menuId}
                             aria-haspopup="true"
                             onClick={handleProfileMenuOpen}
-                            // color="inherit"
+                            color="inherit"
                         >
                             {getAccountIcon()}
                         </IconButton>

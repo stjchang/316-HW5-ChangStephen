@@ -1,40 +1,42 @@
 import './App.css';
 import { React } from 'react'
 import { BrowserRouter, Route, Switch } from 'react-router-dom'
+import { ThemeProvider } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
 import { AuthContextProvider } from './auth';
 import { GlobalStoreContextProvider } from './store'
+import theme from './theme'
 import {
-    AppBanner,
     HomeBar,
     HomeWrapper,
     LoginScreen,
     PlaylistsScreen,
     RegisterScreen,
-    SongsCatalogScreen,
-    Statusbar,
-    WorkspaceScreen
+    CatalogScreen,
+    Statusbar
 } from './components'
 
 const App = () => {   
     return (
-        <BrowserRouter>
-            <AuthContextProvider>
-                <GlobalStoreContextProvider>              
-                    <HomeBar />
-                    <AppBanner />
-                    <Switch>
-                        <Route path="/" exact component={HomeWrapper} />
-                        <Route path="/playlists" exact component={PlaylistsScreen} />
-                        <Route path="/songs" exact component={SongsCatalogScreen} />
-                        <Route path="/login/" exact component={LoginScreen} />
-                        <Route path="/register/" exact component={RegisterScreen} />
-                        <Route path="/edit-account/" exact component={RegisterScreen} />
-                        <Route path="/playlist/:id" exact component={WorkspaceScreen} />
-                    </Switch>
-                    <Statusbar />
-                </GlobalStoreContextProvider>
-            </AuthContextProvider>
-        </BrowserRouter>
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <BrowserRouter>
+                <AuthContextProvider>
+                    <GlobalStoreContextProvider>              
+                        <HomeBar />
+                        <Switch>
+                            <Route path="/" exact component={HomeWrapper} />
+                            <Route path="/playlists" exact component={PlaylistsScreen} />
+                            <Route path="/songs" exact component={CatalogScreen} />
+                            <Route path="/login/" exact component={LoginScreen} />
+                            <Route path="/register/" exact component={RegisterScreen} />
+                            <Route path="/edit-account/" exact component={RegisterScreen} />
+                        </Switch>
+                        <Statusbar />
+                    </GlobalStoreContextProvider>
+                </AuthContextProvider>
+            </BrowserRouter>
+        </ThemeProvider>
     )
 }
 

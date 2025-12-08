@@ -17,17 +17,21 @@
 }
 
 body {
-  background-image: url('https://thumbs.dreamstime.com/b/music-notes-symbols-seamless-pattern-design-fully-editable-fill-background-color-music-notes-symbols-seamless-pattern-118273669.jpg')
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 #root {
   background-color: var(--swatch-primary);
   font-family: "Lexend Exa";
   position: absolute;
-  width: 80%;
-  left: 10%;
-  height: 90%;
-  top: 5%;
+  width: 100%;
+  left: 0;
+  height: 100%;
+  top: 0;
 }
 
 #app-root {
@@ -67,11 +71,6 @@ body {
   height:70%;
   text-align: center;
   vertical-align: center;
-}
-
-#edit-toolbar {
-  background-color: transparent;
-  transform: translate(41%, 0%);
 }
 
 .playlister-button,

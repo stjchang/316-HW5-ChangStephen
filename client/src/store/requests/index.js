@@ -187,6 +187,28 @@ export async function addSongToPlaylist(playlistId, song) {
 }
 
 // Catalog API functions
+export async function getSongById(id) {
+    const url = `${API_BASE}/song/${id}`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+
+    } catch (error) {
+        console.error("getSongById error:", error.message);
+        throw error;
+    }
+}
+
+
 // GET /store/songs
 export async function getAllSongs() {
     const url = `${API_BASE}/songs`;

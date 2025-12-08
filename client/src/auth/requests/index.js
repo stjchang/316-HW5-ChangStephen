@@ -77,7 +77,17 @@ export async function loginUser(email, password) {
             credentials: "include",
         });
 
-        const result = await response.json();
+        const text = await response.text();
+        let result;
+        if (text) {
+            try {
+                result = JSON.parse(text);
+            } catch (parseError) {
+                throw new Error("Invalid response from server");
+            }
+        } else {
+            result = { success: false, errorMessage: "Empty response from server" };
+        }
 
         if (!response.ok) {
             const error = new Error(result.errorMessage || `Response status: ${response.status}`);

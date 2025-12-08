@@ -86,7 +86,11 @@ loginUser = async (req, res) => {
 
     } catch (err) {
         console.error(err);
-        res.status(500).send();
+        // Fixed not sending error message here
+        res.status(500).json({
+            success: false,
+            errorMessage: "An error occurred while logging in."
+        });
     }
 }
 

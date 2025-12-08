@@ -9,15 +9,17 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
+import Fab from '@mui/material/Fab';
 import Grid from '@mui/material/Grid';
 import Link from '@mui/material/Link';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import Input from '@mui/material/Input';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
-import FormHelperText from '@mui/material/FormHelperText';
+// import Input from '@mui/material/Input';
+// import InputLabel from '@mui/material/InputLabel';
+// import FormControl from '@mui/material/FormControl';
+// import FormHelperText from '@mui/material/FormHelperText';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 
 const AVATAR_WIDTH = 200;
 const AVATAR_HEIGHT = 200;
@@ -72,7 +74,7 @@ export default function RegisterScreen() {
                     reject(new Error(`Image must be exactly ${AVATAR_WIDTH}x${AVATAR_HEIGHT} pixels. Current size is ${img.width}x${img.height}`));
                 }
             };
-            img.onerror = () => reject(new Error('Invalid image file'));
+            img.onerror = () => reject(new Error(`Must be exactly ${AVATAR_WIDTH}x${AVATAR_HEIGHT} pixels`));
             img.src = URL.createObjectURL(file);
         });
     };
@@ -119,10 +121,10 @@ export default function RegisterScreen() {
             setEmailError('email is required');
             return false;
         }
-        if (!(value.includes('@') && value.includes('.'))) {
-            setEmailError('Enter a valid email address');
-            return false;
-        }
+        // if (!(value.includes('@') && value.includes('.'))) {
+        //     setEmailError('Enter a valid email address');
+        //     return false;
+        // }
         return true;
     };
 
@@ -217,14 +219,14 @@ export default function RegisterScreen() {
                 const response = await authRequestSender.editAccount(userName, email, password, passwordVerify, avatarImage);
                 if (response && response.success) {
                     await auth.getLoggedIn();
-                    history.push('/');
+                    history.push('/login/');
                 } else {
                     setServerError(response?.errorMessage || "Failed to update account");
                 }
             } else {
                 const response = await auth.registerUser(userName, email, password, passwordVerify, avatarImage);
                 if (response && response.success) {
-                    history.push('/login');
+                    history.push('/login/');
                 }
             }
         } catch (error) {
@@ -243,7 +245,7 @@ export default function RegisterScreen() {
     };
 
     return (
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="sm">
             <CssBaseline />
             <Box
                 sx={{
@@ -253,32 +255,98 @@ export default function RegisterScreen() {
                     alignItems: 'center',
                 }}
             >
-                <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
-                    <LockOutlinedIcon />
-                </Avatar>
+                {!isEditMode && (
+                    <Avatar sx={{ m: 1, bgcolor: '#8932CC' }}>
+                        <LockOutlinedIcon />
+                    </Avatar>
+                )}
                 <Typography component="h1" variant="h5">
                     {isEditMode ? 'Edit Account' : 'Create Account'}
                 </Typography>
-                <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3 }}>
+                <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 3, width: '100%' }}>
                     <Grid container spacing={2}>
                         <Grid item xs={12}>
-                            <TextField
-                                required
-                                fullWidth
-                                id="userName"
-                                label="User Name"
-                                name="userName"
-                                autoComplete="username"
-                                autoFocus
-                                value={userName}
-                                onChange={(e) => {
-                                    setUserName(e.target.value);
-                                    validateUserName(e.target.value);
-                                }}
-                                onBlur={(e) => validateUserName(e.target.value)}
-                                error={userNameError !== ''}
-                                helperText={userNameError}
-                            />
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flexShrink: 0.5 }}>
+                                    <input
+                                        accept="image/*"
+                                        style={{ display: 'none' }}
+                                        id="avatar-upload-fab"
+                                        type="file"
+                                        onChange={handleAvatarChange}
+                                    />
+                                    <label htmlFor="avatar-upload-fab">
+                                        <Fab
+                                            component="span"
+                                            sx={{
+                                                width: 60,
+                                                height: 60,
+                                                bgcolor: '#8932CC',
+                                                '&:hover': { bgcolor: '#702963' },
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            {avatarPreview ? (
+                                                <Avatar
+                                                    src={avatarPreview}
+                                                    alt="Avatar"
+                                                    sx={{ width: 80, height: 80 }}
+                                                />
+                                            ) : auth.user?.avatarImage && isEditMode ? (
+                                                <Avatar
+                                                    src={auth.user.avatarImage}
+                                                    alt="Avatar"
+                                                    sx={{ width: 80, height: 80 }}
+                                                />
+                                            ) : (
+                                                <PhotoCameraIcon sx={{ fontSize: 40, color: 'white' }} />
+                                            )}
+                                        </Fab>
+                                    </label>
+                                    {/* <Button
+                                        component="label"
+                                        htmlFor="avatar-upload-fab"
+                                        variant="contained"
+                                        size="small"
+                                        sx={{
+                                            bgcolor: '#424242',
+                                            color: 'white',
+                                            '&:hover': { bgcolor: '#616161' },
+                                            textTransform: 'none',
+                                            minWidth: 80,
+                                            fontSize: '0.75rem'
+                                        }}
+                                    >
+                                        Select
+                                    </Button> */}
+                                </Box>
+                                
+                                {/* User Name Field */}
+                                <Box sx={{ flexGrow: 1 }}>
+                                    <TextField
+                                        required
+                                        fullWidth
+                                        id="userName"
+                                        label="User Name"
+                                        name="userName"
+                                        autoComplete="username"
+                                        autoFocus
+                                        value={userName}
+                                        onChange={(e) => {
+                                            setUserName(e.target.value);
+                                            validateUserName(e.target.value);
+                                        }}
+                                        onBlur={(e) => validateUserName(e.target.value)}
+                                        error={userNameError !== ''}
+                                        helperText={userNameError}
+                                    />
+                                    {avatarError && (
+                                        <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                                            {avatarError}
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </Box>
                         </Grid>
                         <Grid item xs={12}>
                             <TextField
@@ -336,29 +404,6 @@ export default function RegisterScreen() {
                                 helperText={passwordVerifyError}
                             />
                         </Grid>
-                        <Grid item xs={12}>
-                            <FormControl fullWidth error={avatarError !== ''}>
-                                <InputLabel htmlFor="avatar-upload">Avatar Image {isEditMode && '(optional)'}</InputLabel>
-                                <Input
-                                    id="avatar-upload"
-                                    type="file"
-                                    inputProps={{ accept: 'image/*' }}
-                                    onChange={handleAvatarChange}
-                                />
-                                <FormHelperText>
-                                    {avatarError || `Image must be exactly ${AVATAR_WIDTH}x${AVATAR_HEIGHT} pixels`}
-                                </FormHelperText>
-                            </FormControl>
-                            {avatarPreview && (
-                                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
-                                    <Avatar
-                                        src={avatarPreview}
-                                        alt="Avatar preview"
-                                        sx={{ width: 100, height: 100 }}
-                                    />
-                                </Box>
-                            )}
-                        </Grid>
                         {serverError && (
                             <Grid item xs={12}>
                                 <Typography color="error" variant="body2">
@@ -382,6 +427,11 @@ export default function RegisterScreen() {
                             fullWidth
                             variant="contained"
                             disabled={!isFormValid()}
+                            sx={{
+                                bgcolor: '#8932CC',
+                                '&:hover': { bgcolor: '#702963' },
+                                '&:disabled': { bgcolor: '#ccc' }
+                            }}
                         >
                             {isEditMode ? 'Complete' : 'Create Account'}
                         </Button>
