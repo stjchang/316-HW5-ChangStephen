@@ -51,8 +51,8 @@ export async function deletePlaylist(id) {
 }
 
 // GET /playlist/:id
-export async function getPlaylistById(id) {
-    const url = `${API_BASE}/playlist/${id}`;
+export async function getPlaylistById(id, trackListener = false) {
+    const url = `${API_BASE}/playlist/${id}${trackListener ? '?trackListener=true' : ''}`;
     try {
         const response = await fetch(url, {
             method: "GET",
@@ -233,9 +233,9 @@ export async function getSongById(id) {
 }
 
 
-// GET /store/songs
+// GET /store/catalog
 export async function getAllSongs() {
-    const url = `${API_BASE}/songs`;
+    const url = `${API_BASE}/catalog`;
     try {
         const response = await fetch(url, {
             method: "GET",
@@ -279,13 +279,20 @@ export async function createSong(title, artist, year, youTubeId) {
 }
 
 // PUT /store/song/:id
-export async function updateSong(id, title, artist, year, youTubeId) {
+export async function updateSong(id, title, artist, year, youTubeId, listens) {
     const url = `${API_BASE}/song/${id}`;
+    const body = {};
+    if (title !== undefined) body.title = title;
+    if (artist !== undefined) body.artist = artist;
+    if (year !== undefined) body.year = year;
+    if (youTubeId !== undefined) body.youTubeId = youTubeId;
+    if (listens !== undefined) body.listens = listens;
+    
     try {
         const response = await fetch(url, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, artist, year, youTubeId }),
+            body: JSON.stringify(body),
             credentials: "include",
         });
 

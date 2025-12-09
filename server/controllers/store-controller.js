@@ -34,7 +34,12 @@ const createPlaylist = async (req, res) => {
             })
         }  
 
-        const playlist = await db.createPlaylist(body);
+        const playlistData = {
+            ...body,
+            listenerNames: body.listenerNames || []
+        };
+
+        const playlist = await db.createPlaylist(playlistData);
         if (!playlist) {
             return res.status(400).json({ success: false, error: 'Playlist could not be created' })
         }
@@ -87,7 +92,22 @@ const deletePlaylist = async (req, res) => {
             })
         }
 
-        const deletedPlaylist = await db.deletePlaylistById(req.params.id);
+        const playlistId = req.params.id;
+        
+        // remove playlist from all songs that has it
+        try {
+            const allSongs = await db.getAllSongs();
+            for (const song of allSongs) {
+                if (song.playlists && Array.isArray(song.playlists) && song.playlists.includes(playlistId)) {
+                    song.playlists = song.playlists.filter(id => id.toString() !== playlistId.toString());
+                    await db.updateSongById(song._id, { playlists: song.playlists });
+                }
+            }
+        } catch (songUpdateError) {
+            console.error("Error updating songs when deleting playlist:", songUpdateError);
+        }
+
+        const deletedPlaylist = await db.deletePlaylistById(playlistId);
         if (!deletedPlaylist) {
             return res.status(500).json({
                 errorMessage: 'Playlist could not be deleted'
@@ -104,39 +124,53 @@ const deletePlaylist = async (req, res) => {
 
 const getPlaylistById = async (req, res) => {
     try {
-        const playlist = await db.getPlaylistById(req.params.id);
+        let playlist = await db.getPlaylistById(req.params.id);
         if (!playlist) {
             return res.status(404).json({
                 success: false,
                 errorMessage: 'Playlist not found'
-            })
+            });
         }
 
-        // track listenerNames if user is logged in
-        const userId = auth.verifyUser(req);
-        if (userId !== null) {
-            const user = await db.getUserById(userId);
-            if (user && user.email && playlist.listenerNamess) {
-                if (!playlist.listenerNamess.includes(user.email)) {
-                    playlist.listenerNamess.push(user.email);
-                    await db.updatePlaylistById(req.params.id, { listenerNamess: playlist.listenerNamess });
+        const playingMode = req.query.trackListener === 'true';
+        if (playingMode) {
+            try {
+                const userId = auth.verifyUser(req);
+                if (userId !== null) {
+                    const user = await db.getUserById(userId);
+                    if (user && user.email) {
+                        if (!playlist.listenerNames) {
+                            playlist.listenerNames = [];
+                        }
+                        
+                        if (!playlist.listenerNames.includes(user.email)) {
+                            playlist.listenerNames.push(user.email);
+                            await db.updatePlaylistById(req.params.id, { listenerNames: playlist.listenerNames });
+                            const updatedPlaylist = await db.getPlaylistById(req.params.id);
+                            if (updatedPlaylist) {
+                                playlist = updatedPlaylist;
+                            }
+                        }
+                    }
                 }
-            } else if (user && user.email) {
-                await db.updatePlaylistById(req.params.id, { listenerNamess: [user.email] });
+            } catch (trackingError) {
+                console.error("Error tracking listener in getPlaylistById:", trackingError);
             }
         }
 
-        return res.status(200).json({
-            success: true,
-            playlist: playlist
-        });
+            return res.status(200).json({
+                success: true,
+                playlist: playlist
+            });
     } catch (error) {
+        console.error("getPlaylistById error:", error);
         return res.status(500).json({
             success: false,
             errorMessage: 'Could not retrieve playlist'
         });
     }
-}
+};
+
 const getPlaylistPairs = async (req, res) => {
     const userId = auth.verifyUser(req);
     if(userId === null){
@@ -182,8 +216,8 @@ const getPlaylistPairs = async (req, res) => {
 const getPlaylists = async (req, res) => {
 
     try {
-        const playlists = await db.getAllPlaylists();
-        if (!playlists || playlists.length === 0) {
+    const playlists = await db.getAllPlaylists();
+    if (!playlists || playlists.length === 0) {
             return res.status(200).json({
                 success: true, 
                 data: []
@@ -238,7 +272,7 @@ const updatePlaylist = async (req, res) => {
             name: playlistData.name,
             songs: playlistData.songs,
             ownerEmail: existingPlaylist.ownerEmail,
-            listenerNamess: existingPlaylist.listenerNamess || []
+            listenerNames: existingPlaylist.listenerNames || []
         };
 
         await db.updatePlaylistById(req.params.id, updatedPlaylist);
@@ -290,7 +324,8 @@ const copyPlaylist = async (req, res) => {
                 year: song.year,
                 youTubeId: song.youTubeId,
                 ownerEmail: song.ownerEmail
-            }))
+            })),
+            listenerNames: [] 
         };
 
         const newPlaylist = await db.createPlaylist(copiedPlaylistData);
@@ -387,7 +422,7 @@ const addSongToPlaylist = async (req, res) => {
             name: playlist.name,
             songs: updatedSongs,
             ownerEmail: playlist.ownerEmail,
-            listenerNamess: playlist.listenerNamess || []
+            listenerNames: playlist.listenerNames || []
         };
 
         const result = await db.updatePlaylistById(req.params.id, updatedPlaylist);
@@ -397,13 +432,11 @@ const addSongToPlaylist = async (req, res) => {
             if (catalogSong) {
                 const playlistId = result._id;
                 if (!catalogSong.playlists || !catalogSong.playlists.includes(playlistId)) {
-                    // spread existing playlists with new playlist id or create new playlist and spread to added playlist id
                     const updatedPlaylists = [...(catalogSong.playlists || []), playlistId];
                     await db.updateSongById(catalogSong._id, { playlists: updatedPlaylists });
                 }
             }
         } catch (error) {
-            // dont fail since we should still add song to playlist if song is not in catalog
             console.error("Error updating song catalog:", error);
             
         }
@@ -618,14 +651,15 @@ const updateSong = async (req, res) => {
         }
 
         const user = await db.getUserById(userId);
-        if (!user || user.email !== existingSong.ownerEmail) {
+        const { title, artist, year, youTubeId, listens } = req.body;
+        
+
+        if (listens === undefined && (!user || user.email !== existingSong.ownerEmail)) {   
             return res.status(403).json({
                 success: false,
                 errorMessage: 'You can only edit songs you added to the catalog.'
             });
         }
-
-        const { title, artist, year, youTubeId } = req.body;
         
         // check for duplicate
         if (title && artist && year !== undefined) {
@@ -651,8 +685,18 @@ const updateSong = async (req, res) => {
         if (youTubeId !== undefined) {
             dataToUpdate.youTubeId = youTubeId.trim();
         }
+        if (listens !== undefined) {
+            dataToUpdate.listens = parseInt(listens);
+        }
 
         const updatedSong = await db.updateSongById(songId, dataToUpdate);
+        
+        if (!updatedSong) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Song not found after update'
+            });
+        }
         
         // update every song in playlists that contain the song
         if (existingSong.playlists && existingSong.playlists.length > 0) {
@@ -680,7 +724,7 @@ const updateSong = async (req, res) => {
                         name: playlist.name,
                         songs: updatedSongs,
                         ownerEmail: playlist.ownerEmail,
-                        listenerNamess: playlist.listenerNamess || []
+                        listenerNames: playlist.listenerNames || []
                     });
                 }
             }
@@ -727,6 +771,7 @@ const deleteSong = async (req, res) => {
             });
         }
 
+        const user = await db.getUserById(userId);
         if (!user || user.email !== song.ownerEmail) {
             return res.status(403).json({
                 success: false,
@@ -734,20 +779,34 @@ const deleteSong = async (req, res) => {
             });
         }
 
-        if (song.playlists && song.playlists.length > 0) {
+        if (song.playlists && Array.isArray(song.playlists) && song.playlists.length > 0) {
             for (const playlistId of song.playlists) {
-                const playlist = await db.getPlaylistById(playlistId);
-                if (playlist && playlist.songs) {
-                    const filteredSongs = playlist.songs.filter(s => 
-                        !(s.title === song.title && s.artist === song.artist &&  s.year === song.year)
-                    );
+                try {
+                    if (!playlistId) {
+                        continue;
+                    }
                     
-                    await db.updatePlaylistById(playlistId, {
-                        name: playlist.name,
-                        songs: filteredSongs,
-                        ownerEmail: playlist.ownerEmail,
-                        listenerNamess: playlist.listenerNamess || []
-                    });
+                    const playlist = await db.getPlaylistById(playlistId);
+                    if (playlist && playlist.songs && Array.isArray(playlist.songs)) {
+                        const filteredSongs = playlist.songs.filter(s => {
+                            if (!s || !song) return true;
+                            const songYear = typeof song.year === 'number' ? song.year : parseInt(song.year);
+                            const sYear = typeof s.year === 'number' ? s.year : parseInt(s.year);
+                            return !(s.title === song.title && 
+                                    s.artist === song.artist && 
+                                    sYear === songYear);
+                        });
+                        
+                        const playlistUpdate = {
+                            name: playlist.name || 'Untitled Playlist',
+                            songs: filteredSongs || [],
+                            ownerEmail: playlist.ownerEmail,
+                            listenerNames: playlist.listenerNames || []
+                        };
+                        
+                        await db.updatePlaylistById(playlistId, playlistUpdate);
+                    }
+                } catch (playlistError) {
                 }
             }
         }
@@ -764,7 +823,7 @@ const deleteSong = async (req, res) => {
         console.error("deleteSong error:", error);
         return res.status(500).json({
             success: false,
-            errorMessage: 'Could not remove song'
+            errorMessage: error.message || 'Could not remove song'
         });
     }
 }

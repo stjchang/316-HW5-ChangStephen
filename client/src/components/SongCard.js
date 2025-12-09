@@ -1,73 +1,60 @@
-import { useContext } from 'react'
-import { GlobalStoreContext } from '../store'
-import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 function SongCard(props) {
-    const { store } = useContext(GlobalStoreContext);
-    const { song, index } = props;
+    const { song, index, onMenuClick, isSelected = false, isOwner = false } = props;
 
-    function handleDragStart(event) {
-        event.dataTransfer.setData("song", index);
-    }
+    const formatNumber = (num) => {
+        return num ? num.toLocaleString() : '0';
+    };
 
-    function handleDragOver(event) {
-        event.preventDefault();
-    }
-
-    function handleDragEnter(event) {
-        event.preventDefault();
-    }
-
-    function handleDragLeave(event) {
-        event.preventDefault();
-    }
-
-    function handleDrop(event) {
-        event.preventDefault();
-        let targetIndex = index;
-        let sourceIndex = Number(event.dataTransfer.getData("song"));
-
-        // UPDATE THE LIST
-        store.addMoveSongTransaction(sourceIndex, targetIndex);
-    }
-    function handleRemoveSong(event) {
-        store.addRemoveSongTransaction(song, index);
-    }
-    function handleClick(event) {
-        // DOUBLE CLICK IS FOR SONG EDITING
-        if (event.detail === 2) {
-            store.showEditSongModal(index, song);
-        }
-    }
-
-    let cardClass = "list-card unselected-list-card";
     return (
-        <div
-            key={index}
-            id={'song-' + index + '-card'}
-            className={cardClass}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            draggable="true"
-            onClick={handleClick}
+        <Box
+            key={song._id || index}
+            sx={{
+                bgcolor: isSelected ? '#FFA500' : '#F9EF94FF', 
+                border: isOwner ? '3px solid #d32f2f' : '1px solid #d32f2f',
+                borderRadius: '4px',
+                p: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                '&:hover': {
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                }
+            }}
+            onClick={() => {
+                if (props.onSongClick) {
+                    props.onSongClick(song);
+                }
+            }}
         >
-            {index + 1}.
-            <a
-                id={'song-' + index + '-link'}
-                className="song-link"
-                href={"https://www.youtube.com/watch?v=" + song.youTubeId}>
-                {song.title} ({song.year}) by {song.artist}
-            </a>
-            <Button
-                sx={{transform:"translate(-5%, -5%)", width:"5px", height:"30px"}}
-                variant="contained"
-                id={"remove-song-" + index}
-                className="list-card-button"
-                onClick={handleRemoveSong}>{"\u2715"}</Button>
-        </div>
+            <Box sx={{ flex: 1 }}>
+                <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 0.5 }}>
+                    {song.title || 'Untitled'}{song.artist ? ` by ${song.artist}` : ''}{song.year ? ` (${song.year})` : ''}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#666' }}>
+                    Listens: {formatNumber(song.listens || 0)}
+                </Typography>
+                <Typography variant="body2" sx={{ color: '#666' }}>
+                    Playlists: {song.playlists?.length || 0}
+                </Typography>
+            </Box>
+            {onMenuClick && (
+                <IconButton
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onMenuClick(e, song);
+                    }}
+                    sx={{ ml: 2 }}
+                >
+                    <MoreVertIcon />
+                </IconButton>
+            )}
+        </Box>
     );
 }
 

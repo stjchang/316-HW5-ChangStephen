@@ -4,6 +4,7 @@ import { GlobalStoreContext } from '../store';
 import storeRequestSender from '../store/requests';
 import MUIDeleteModal from './MUIDeleteModal';
 import MUIEditPlaylistModal from './MUIEditPlaylistModal';
+import MUIPlayPlaylistModal from './MUIPlayPlaylistModal';
 import PlaylistCard from './PlaylistCard';
 
 import AddIcon from '@mui/icons-material/Add';
@@ -24,12 +25,13 @@ import MenuItem from '@mui/material/MenuItem';
 export default function PlaylistsScreen() {
     const { auth } = useContext(AuthContext);
     const { store } = useContext(GlobalStoreContext);
-    // const history = useHistory(); // need for pushing modals on
     const [playlists, setPlaylists] = useState([]);
     const [filteredPlaylists, setFilteredPlaylists] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingPlaylist, setEditingPlaylist] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [playingPlaylist, setPlayingPlaylist] = useState(null);
+    const [showPlayModal, setShowPlayModal] = useState(false);
     
     // left side search fields
     const [searchByName, setSearchByName] = useState('');
@@ -47,14 +49,14 @@ export default function PlaylistsScreen() {
         if (store && store.listMarkedForDeletion === null && !loading) {
             const timer = setTimeout(() => {
                 loadPlaylists();
-            }, 100);
+            }, 200);
             return () => clearTimeout(timer);
         }
     }, [store?.listMarkedForDeletion]);
 
     useEffect(() => {
         applyFiltersAndSort();
-    }, [playlists, searchByName, searchByUser, searchBySongTitle, searchBySongArtist, searchBySongYear, sortBy]);
+    }, [playlists, searchByName, searchByUser, searchBySongTitle, searchBySongArtist, searchBySongYear, sortBy, auth.loggedIn, auth.user]);
 
     const loadPlaylists = async () => {
         try {
@@ -72,6 +74,16 @@ export default function PlaylistsScreen() {
 
     const applyFiltersAndSort = () => {
         let filtered = [...playlists];
+
+        const hasSearchQuery = searchByName.trim() || searchByUser.trim() || searchBySongTitle.trim() 
+                            || searchBySongArtist.trim() || searchBySongYear.trim();    
+
+        //if nothign in search, only shwo crrent users playlists
+        if (!hasSearchQuery && auth.loggedIn && auth.user && auth.user.email) {
+            filtered = filtered.filter(playlist => 
+                playlist.ownerEmail === auth.user.email
+            );
+        }
 
         if (searchByName.trim()) {
             const query = searchByName.toLowerCase().trim();
@@ -170,27 +182,17 @@ export default function PlaylistsScreen() {
                 auth.user.email
             );
             if (response.playlist) {
-                await loadPlaylists();
                 setEditingPlaylist(response.playlist);
                 setShowEditModal(true);
+                loadPlaylists();
             }
         } catch (error) {
             console.error("Error creating playlist:", error);
         }
     };
 
-    const handleEditPlaylistComplete = async (playlistData) => {
-        if (editingPlaylist) {
-            try {
-                const updatedPlaylist = { ...editingPlaylist, name: playlistData.name };
-                const response = await storeRequestSender.updatePlaylist(editingPlaylist._id, updatedPlaylist);
-                if (response.success) {
-                    await loadPlaylists();
-                }
-            } catch (error) {
-                console.error("Error updating playlist:", error);
-            }
-        }
+    const handleEditPlaylistComplete = async () => {
+        await loadPlaylists();
         setShowEditModal(false);
         setEditingPlaylist(null);
     };
@@ -415,6 +417,25 @@ export default function PlaylistsScreen() {
                                 key={playlist._id}
                                 playlist={playlist}
                                 onEditComplete={() => loadPlaylists()}
+                                onPlay={(updatedPlaylist) => {
+                                    const playlistToPlay = updatedPlaylist || playlist;
+                                    setPlayingPlaylist(playlistToPlay);
+                                    setShowPlayModal(true);
+                                }}
+                                onPlaylistUpdate={(updatedPlaylist) => {
+                                    setPlaylists(prevPlaylists => {
+                                        const updated = prevPlaylists.map(p => 
+                                            p._id === updatedPlaylist._id ? { ...updatedPlaylist } : p
+                                        );
+                                        return updated;
+                                    });
+                                    setFilteredPlaylists(prevFiltered => {
+                                        const updated = prevFiltered.map(p => 
+                                            p._id === updatedPlaylist._id ? { ...updatedPlaylist } : p
+                                        );
+                                        return updated;
+                                    });
+                                }}
                                 onCopy={async () => {
                                     try {
                                         if (store.copyPlaylist) {
@@ -462,6 +483,29 @@ export default function PlaylistsScreen() {
                 }}
                 onSubmit={handleEditPlaylistComplete}
                 playlist={editingPlaylist}
+            />
+            <MUIPlayPlaylistModal
+                open={showPlayModal}
+                onClose={() => {
+                    setShowPlayModal(false);
+                    setPlayingPlaylist(null);
+                }}
+                // for updating listener count
+                onPlaylistUpdate={(updatedPlaylist) => {
+                    setPlaylists(prevPlaylists => {
+                        const updated = prevPlaylists.map(p => 
+                            p._id === updatedPlaylist._id ? { ...updatedPlaylist } : p
+                        );
+                        return updated;
+                    });
+                    setFilteredPlaylists(prevFiltered => {
+                        const updated = prevFiltered.map(p => 
+                            p._id === updatedPlaylist._id ? { ...updatedPlaylist } : p
+                        );
+                        return updated;
+                    });
+                }}
+                playlist={playingPlaylist}
             />
         </Box>
     );

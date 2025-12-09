@@ -8,5 +8,6 @@ router.post('/login', AuthController.loginUser)
 router.get('/logout', AuthController.logoutUser)
 router.get('/loggedIn', AuthController.getLoggedIn)
 router.put('/edit', auth.verify, AuthController.editAccount)
+router.get('/user/:email', AuthController.getUserByEmail)
 
 module.exports = router

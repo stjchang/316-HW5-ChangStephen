@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react'
 import * as React from 'react';
+import { useHistory } from 'react-router-dom';
 import { GlobalStoreContext, GlobalStoreActionType } from '../store';
 import AuthContext from '../auth';
 import storeRequestSender from '../store/requests';
@@ -35,6 +36,7 @@ const style1 = {
 export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist = null }) {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext);
+    const history = useHistory();
     const [name, setName] = useState('');
     const [localPlaylist, setLocalPlaylist] = useState(null);
 
@@ -42,7 +44,7 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
         if (playlist && open) {
             async function loadPlaylist() {
                 try {
-                    const response = await storeRequestSender.getPlaylistById(playlist._id);
+                    const response = await storeRequestSender.getPlaylistById(playlist._id, false);
                     if (response.success) {
                         const loadedPlaylist = response.playlist;
                         setLocalPlaylist(loadedPlaylist);
@@ -80,9 +82,8 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
     }
 
     function handleAddSong() {
-        if (currentPlaylist) {
-            store.addNewSong();
-        }
+        onClose();
+        history.push('/catalog');
     }
 
     function handleDuplicateSong(index) {
@@ -96,9 +97,7 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
                 songToDuplicate.artist,
                 songToDuplicate.year,
                 songToDuplicate.youTubeId || '',
-                ownerEmail,
-                [currentPlaylist._id],
-                songToDuplicate.listens = 0
+                ownerEmail
             );
         }
     }
@@ -106,6 +105,31 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
     function handleRemoveSong(index) {
         if (currentPlaylist && songs[index]) {
             store.addRemoveSongTransaction(songs[index], index);
+        }
+    }
+
+    function handleDragStart(event, index) {
+        event.dataTransfer.setData("song", index);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+    }
+
+    function handleDragEnter(event) {
+        event.preventDefault();
+    }
+
+    function handleDragLeave(event) {
+        event.preventDefault();
+    }
+
+    function handleDrop(event, targetIndex) {
+        event.preventDefault();
+        const sourceIndex = Number(event.dataTransfer.getData("song"));
+        
+        if (sourceIndex !== targetIndex && !isNaN(sourceIndex)) {
+            store.addMoveSongTransaction(sourceIndex, targetIndex);
         }
     }
 
@@ -148,10 +172,12 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
         return null;
     }
 
+    const hasName = name.trim().length > 0;
+
     return (
         <Modal
             open={open}
-            onClose={handleClose}
+            onClose={hasName ? handleClose : undefined}
         >
             <Box sx={style1}>
                 {/* Top Bar */}
@@ -231,6 +257,12 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
                         songs.map((song, index) => (
                             <Box
                                 key={index}
+                                draggable="true"
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragOver={handleDragOver}
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, index)}
                                 sx={{
                                     bgcolor: '#F9EF94FF',
                                     borderRadius: '10px',
@@ -238,7 +270,13 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    cursor: 'move',
+                                    '&:hover': {
+                                        boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                                        transform: 'translateY(-2px)'
+                                    },
+                                    transition: 'all 0.2s ease'
                                 }}
                             >
                                 <Typography variant="body1" sx={{ fontWeight: 'medium', flex: 1 }}>
@@ -314,9 +352,11 @@ export default function MUIEditPlaylistModal({ open, onClose, onSubmit, playlist
                     <Button
                         variant="contained"
                         onClick={handleClose}
+                        disabled={!hasName}
                         sx={{
-                            bgcolor: '#F84D4DFF',
-                            '&:hover': { bgcolor: '#C62424FF' },
+                            bgcolor: hasName ? '#F84D4DFF' : '#ccc',
+                            '&:hover': hasName ? { bgcolor: '#C62424FF' } : {},
+                            '&:disabled': { bgcolor: '#ccc', color: '#999' },
                             borderRadius: '20px',
                             px: 4
                         }}

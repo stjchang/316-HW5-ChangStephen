@@ -125,7 +125,11 @@ const db = {
 
     updatePlaylistById: async (id, playlistObject) => {
         try {
-            return await Playlist.findByIdAndUpdate(id, playlistObject, { new: true });
+            return await Playlist.findByIdAndUpdate(
+                id, 
+                { $set: playlistObject }, 
+                { new: true, runValidators: true }
+            );
         } catch (error) {
             console.error('Error updating playlist:', error);
             throw error;
@@ -176,7 +180,13 @@ const db = {
 
     updateSongById: async (id, songObject) => {
         try {
-            return await Song.findByIdAndUpdate(id, songObject, { new: true });
+            const updated = await Song.findByIdAndUpdate(
+                id, 
+                { $set: songObject }, 
+                { new: true, runValidators: true }
+            );
+
+            return updated;
         } catch (error) {
             console.error('Error updating song:', error);
             throw error;

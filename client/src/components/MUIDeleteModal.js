@@ -53,7 +53,7 @@ export default function MUIDeleteModal() {
             }}>
                 <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', color: 'white' }}>
                     Delete playlist?
-                </Typography>
+            </Typography>
             </Box>
             
             <Box sx={{ 

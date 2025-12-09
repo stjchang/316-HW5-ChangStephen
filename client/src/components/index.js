@@ -7,13 +7,13 @@ import MUIDeleteModal from './MUIDeleteModal'
 import MUIDeleteSongModal from './MUIDeleteSongModal'
 import MUIEditSongModal from './MUIEditSongModal'
 import MUIEditPlaylistModal from './MUIEditPlaylistModal'
+import MUIPlayPlaylistModal from './MUIPlayPlaylistModal'
 import MUIErrorModal from './MUIErrorModal'
 import PlaylistsScreen from './PlaylistsScreen'
 import RegisterScreen from './RegisterScreen'
 import SongCard from './SongCard'
 import CatalogScreen from './CatalogScreen'
 import SplashScreen from './SplashScreen'
-import Statusbar from './Statusbar'
 /*
     This serves as a module so that we can import
     all the other components as we wish.
@@ -30,11 +30,11 @@ export {
     MUIDeleteSongModal,
     MUIEditPlaylistModal,
     MUIEditSongModal,
+    MUIPlayPlaylistModal,
     MUIErrorModal,
     PlaylistsScreen,
     SongCard,
     CatalogScreen,
     RegisterScreen,
     SplashScreen,
-    Statusbar, 
     }

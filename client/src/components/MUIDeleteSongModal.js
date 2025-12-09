@@ -5,20 +5,16 @@ import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 
 const style1 = {
     position: 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: 345,
-    height: 250,
-    backgroundSize: "contain",
-    backgroundImage: `url(https://i.insider.com/602ee9ced3ad27001837f2ac?})`,
+    width: 500,
+    height: 300,
     border: '3px solid #000',
-    padding: '20px',
-    boxShadow: 24,
+    overflow: 'hidden',
 };
 
 export default function MUIDeleteSongModal() {
@@ -28,9 +24,15 @@ export default function MUIDeleteSongModal() {
         name = store.songMarkedForDeletion.title;
     }
     function handleDeleteSong(event) {
+        if (event) {
+            event.stopPropagation();
+        }
         store.deleteMarkedSong();
     }
     function handleCloseModal(event) {
+        if (event) {
+            event.stopPropagation();
+        }
         store.hideModals();
     }
 
@@ -39,19 +41,73 @@ export default function MUIDeleteSongModal() {
         open={store.songMarkedForDeletion !== null}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
+        onClose={handleCloseModal}
         >
         <Box sx={style1}>
-            <Typography sx={{fontWeight: 'bold'}} id="modal-modal-title" variant="h4" component="h2">
-                Delete Song
-            </Typography>
-            <Divider sx={{borderBottomWidth: 5, p: '5px', transform: 'translate(-5.5%, 0%)', width:377}}/>
-            <Box sx={{background: "rgb(172,79,198,0.05)"}}>
-            <Typography id="modal-modal-description" variant="h6" sx={{color: "#301974" ,fontWeight: 'bold', mt: 1}}>
-                Are you sure you want to delete the <Typography display="inline" id="modal-modal-description" variant="h6" sx={{color: "#820747CF" ,fontWeight: 'bold', mt: 2, textDecoration: 'underline'}}>{name}</Typography> song?
-            </Typography>
+            <Box sx={{ 
+                bgcolor: '#8932CC', 
+                color: 'white', 
+                p: 2,
+                fontWeight: 'bold'
+            }}>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', color: 'white' }}>
+                    Remove Song?
+                </Typography>
             </Box>
-            <Button sx={{opacity: 0.7, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"60px", mr:"95px"}} variant="outlined" onClick={handleDeleteSong}> Confirm </Button>
-            <Button sx={{opacity: 0.50, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"60px", ml:"102px"}} variant="outlined" onClick={handleCloseModal}> Cancel </Button>
+            
+            <Box sx={{ 
+                bgcolor: '#F6B5FFFF', 
+                p: 3,
+                height: 'calc(100% - 80px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+            }}>
+                <Box>
+                    <Typography variant="h6" sx={{ color: '#424242', fontWeight: 'bold', mb: 1 }}>
+                        Are you sure you want to remove this song from the catalog?
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: '#424242', mt: 1 }}>
+                        Doing so will remove it from playlists you own.
+                    </Typography>
+                </Box>
+                
+                {/* Buttons */}
+                <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'space-between' }}>
+                    <Button 
+                        type="button"
+                        sx={{
+                            bgcolor: '#424242',
+                            color: 'white',
+                            '&:hover': { bgcolor: '#616161' },
+                            textTransform: 'none',
+                            px: 3,
+                            py: 1
+                        }}
+                        onClick={handleDeleteSong}
+                    >
+                        Remove Song
+                    </Button>
+                    <Button 
+                        type="button"
+                        sx={{
+                            bgcolor: '#424242',
+                            color: 'white',
+                            '&:hover': { bgcolor: '#616161' },
+                            textTransform: 'none',
+                            px: 3,
+                            py: 1,
+                            ml: 'auto'
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleCloseModal(e);
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                </Box>
+            </Box>
         </Box>
     </Modal>
     );

@@ -149,6 +149,18 @@ function AuthContextProvider(props) {
         history.push("/");
     }
 
+    auth.getUserByEmail = async function(email) {
+        const response = await authRequestSender.getUserByEmail(email);
+        if (response.success) {
+            authReducer({
+                type: AuthActionType.GET_USER_BY_EMAIL,
+                payload: {
+                    user: response.user
+                }
+            })
+        }
+    }
+
     return (
         <AuthContext.Provider value={{
             auth

@@ -26,7 +26,7 @@ export default function HomeBar() {
                         location.pathname === '/edit-account/';
     
     const isOnPlaylistsScreen = location.pathname === '/playlists';
-    const isOnCatalogScreen = location.pathname === '/songs';
+    const isOnCatalogScreen = location.pathname === '/catalog';
     const shouldHideButtons = !isOnPlaylistsScreen && !isOnCatalogScreen;
 
     const handleProfileMenuOpen = (event) => {
@@ -197,21 +197,19 @@ export default function HomeBar() {
                             >
                                 Playlists
                             </Button>
-                            {/* {auth.loggedIn && (
-                                <Button 
-                                    color="inherit" 
-                                    onClick={handleCatalogClick}
-                                    disabled={shouldHideButtons}
-                                    sx={{ 
-                                        textTransform: 'none',
-                                        filter: shouldHideButtons ? 'blur(2px)' : 'none',
-                                        opacity: shouldHideButtons ? 0 : 1,
-                                        pointerEvents: shouldHideButtons ? 'none' : 'auto'
-                                    }}
-                                >
-                                    Song Catalog
-                                </Button>
-                            )} */}
+                            <Button 
+                                color="inherit" 
+                                onClick={handleCatalogClick}
+                                disabled={shouldHideButtons}
+                                sx={{ 
+                                    textTransform: 'none',
+                                    filter: shouldHideButtons ? 'blur(2px)' : 'none',
+                                    opacity: shouldHideButtons ? 0 : 1,
+                                    pointerEvents: shouldHideButtons ? 'none' : 'auto',
+                                }}
+                            >
+                                Song Catalog
+                            </Button>
                         </Box>
                     )}
 

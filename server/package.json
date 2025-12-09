@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "import-songs": "node tests/data/reset-mongo.js"
   },
   "license": "MIT",
   "dependencies": {

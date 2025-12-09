@@ -178,13 +178,36 @@ export const editAccount = async(userName, email, password, passwordVerify, avat
     }
 }
 
+// GET /user/:email
+export const getUserByEmail = async (email) => {
+    const url = `${API_BASE}/user/${encodeURIComponent(email)}`;
+    try {
+        const response = await fetch(url, {
+            method: "GET",
+            credentials: "include",
+        });
+
+        if (!response.ok) {
+            throw new Error(`Response status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+
+    } catch (error) {
+        console.error("getUserByEmail error:", error.message);
+        throw error;
+    }
+}
+
 
 const apis = {
     getLoggedIn,
     registerUser,
     loginUser,
     logoutUser,
-    editAccount
+    editAccount,
+    getUserByEmail
 }
 
 export default apis;

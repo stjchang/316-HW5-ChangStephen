@@ -21,8 +21,8 @@ router.get('/playlist/:id', StoreController.getPlaylistById)
 router.get('/playlists', StoreController.getPlaylists)
 router.get('/playlistpairs', auth.verify, StoreController.getPlaylistPairs)
 
-// SONG OG ENDPOINTS
-router.get('/songs', StoreController.getAllSongs)
+// SONG CATALOG ENDPOINTS
+router.get('/catalog', StoreController.getAllSongs)
 router.post('/song', auth.verify, StoreController.createSong)
 router.put('/song/:id', auth.verify, StoreController.updateSong)
 router.delete('/song/:id', auth.verify, StoreController.deleteSong)

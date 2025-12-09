@@ -1,7 +1,8 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { GlobalStoreContext } from '../store'
 import AuthContext from '../auth'
 import storeRequestSender from '../store/requests'
+import authRequestSender from '../auth/requests'
 import MUIEditPlaylistModal from './MUIEditPlaylistModal'
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -18,22 +19,103 @@ function PlaylistCard(props) {
     const { auth } = useContext(AuthContext);
     const [expanded, setExpanded] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [ownerData, setOwnerData] = useState(null);
 
     const playlist = props.playlist;
+    const ownerEmail = playlist?.ownerEmail || '';
+
+    // default blue image (200x200)
+    const defaultAvatar = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iIzE5NzZkMiIvPjwvc3ZnPg==';
+
+    useEffect(() => {
+        if (auth.loggedIn && auth.user && auth.user.email === ownerEmail) {
+            setOwnerData({
+                userName: auth.user.userName,
+                email: auth.user.email,
+                avatarImage: auth.user.avatarImage
+            });
+        } else if (ownerEmail) {
+            async function loadOwnerData() {
+                try {
+                    const response = await authRequestSender.getUserByEmail(ownerEmail);
+                    if (response.success) {
+                        setOwnerData(response.user);
+                    }
+                } catch (error) {
+                    console.error("Error loading owner data:", error);
+                }
+            }
+            loadOwnerData();
+        }
+    }, [ownerEmail, auth.loggedIn, auth.user]);
+
     if (!playlist) {
         return null;
     }
 
     const playlistName = playlist.name || '';
     const playlistId = playlist._id || '';
-    const ownerEmail = playlist.ownerEmail || '';
     const listenerNamesCount = props.listenerNamesCount || (playlist.listenerNames?.length || 0);
     const isOwner = props.isOwner || false;
 
-    const handlePlay = () => {
-        if (props.onPlay) {
-            props.onPlay();
-        } 
+    const getAccountIcon = () => {
+        if (ownerData) {
+            if (ownerData.avatarImage) {
+                return (
+                    <Avatar 
+                        src={ownerData.avatarImage} 
+                        alt={ownerData.userName || ownerEmail}
+                        sx={{ width: 50, height: 50 }}
+                        onError={(e) => {
+                            e.target.src = defaultAvatar;
+                        }}
+                    />
+                );
+            } else if (ownerData.userName) {
+                const initials = ownerData.userName.substring(0, 2).toUpperCase();
+                return (
+                    <Avatar sx={{ width: 50, height: 50, bgcolor: '#8932CC' }}>
+                        {initials}
+                    </Avatar>
+                );
+            }
+        }
+        return (
+            <Avatar 
+                src={defaultAvatar}
+                sx={{ width: 50, height: 50 }}
+            />
+        );
+    };
+
+    // ON CLICK UPDATE LISTENER COUNT
+    const handlePlay = async () => {
+        if (auth.loggedIn && auth.user && playlist?._id) {
+            try {
+                const response = await storeRequestSender.getPlaylistById(playlist._id, true);
+                if (response.success && response.playlist) {
+                    if (props.onPlaylistUpdate) {
+                        props.onPlaylistUpdate(response.playlist);
+                    }
+                    if (props.onPlay) {
+                        props.onPlay(response.playlist);
+                    }
+                } else {
+                    if (props.onPlay) {
+                        props.onPlay();
+                    }
+                }
+            } catch (error) {
+                console.error("Error tracking listener:", error);
+                if (props.onPlay) {
+                    props.onPlay();
+                }
+            }
+        } else {
+            if (props.onPlay) {
+                props.onPlay();
+            }
+        }
     };
 
     const handleEdit = (e) => {
@@ -95,17 +177,15 @@ function PlaylistCard(props) {
                 gap: 2,
             }}>
                 {/* Owner Avatar */}
-                <Avatar sx={{ bgcolor: '#8932CC', width: 50, height: 50 }}>
-                    <AccountCircle sx={{ fontSize: 35 }} />
-                </Avatar>
+                {getAccountIcon()}
 
-                {/* Playlist Name, Owner, and listenerNames Count */}
+                {/* Playlist Name, Owner Username, and listenerNames Count */}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                         {playlistName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                        {ownerEmail}
+                        {ownerData?.userName || ownerEmail}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#1976d2', fontWeight: 'medium' }}>
                         {listenerNamesCount} Listener{listenerNamesCount !== 1 ? 's' : ''}

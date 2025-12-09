@@ -13,29 +13,27 @@ import {
     PlaylistsScreen,
     RegisterScreen,
     CatalogScreen,
-    Statusbar
 } from './components'
 
 const App = () => {   
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
-            <BrowserRouter>
-                <AuthContextProvider>
-                    <GlobalStoreContextProvider>              
+        <BrowserRouter>
+            <AuthContextProvider>
+                <GlobalStoreContextProvider>              
                         <HomeBar />
-                        <Switch>
-                            <Route path="/" exact component={HomeWrapper} />
+                    <Switch>
+                        <Route path="/" exact component={HomeWrapper} />
                             <Route path="/playlists" exact component={PlaylistsScreen} />
-                            <Route path="/songs" exact component={CatalogScreen} />
-                            <Route path="/login/" exact component={LoginScreen} />
-                            <Route path="/register/" exact component={RegisterScreen} />
+                            <Route path="/catalog" exact component={CatalogScreen} />
+                        <Route path="/login/" exact component={LoginScreen} />
+                        <Route path="/register/" exact component={RegisterScreen} />
                             <Route path="/edit-account/" exact component={RegisterScreen} />
-                        </Switch>
-                        <Statusbar />
-                    </GlobalStoreContextProvider>
-                </AuthContextProvider>
-            </BrowserRouter>
+                    </Switch>
+                </GlobalStoreContextProvider>
+            </AuthContextProvider>
+        </BrowserRouter>
         </ThemeProvider>
     )
 }

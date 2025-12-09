@@ -121,10 +121,7 @@ export default function RegisterScreen() {
             setEmailError('email is required');
             return false;
         }
-        // if (!(value.includes('@') && value.includes('.'))) {
-        //     setEmailError('Enter a valid email address');
-        //     return false;
-        // }
+        setEmailError('');
         return true;
     };
 

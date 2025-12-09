@@ -428,15 +428,21 @@ function GlobalStoreContextProvider(props) {
     store.deleteMarkedSong = async function() {
         if (!store.songMarkedForDeletion) return;
         
+        const songToDelete = store.songMarkedForDeletion;
+        
         try {
-            const response = await storeRequestSender.deleteSong(store.songMarkedForDeletion._id);
+            const response = await storeRequestSender.deleteSong(songToDelete._id);
             if (response.success) {
+                storeReducer({
+                    type: GlobalStoreActionType.SET_SONG_MARKED_FOR_DELETION,
+                    payload: { song: null }
+                });
                 store.hideModals();
             } else {
                 alert(response.errorMessage || "Failed to delete song");
             }
         } catch (error) {
-            alert(error.message || "Failed to delete song");
+            console.error("Error deleting song:", error);
         }
     }
 
