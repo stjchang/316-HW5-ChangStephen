@@ -124,9 +124,10 @@ dbConnection.once('open', async () => {
         let songsErrors = 0;
 
         for (const [songKey, songData] of songMap) {
-            if (songsImported >= SONGS_TO_IMPORT) {
-                break;
-            }
+            // for testing only
+            // if (songsImported >= SONGS_TO_IMPORT) {
+            //     break;
+            // }
             try {
                 const existingSong = await Song.findOne({
                     title: songData.title,
