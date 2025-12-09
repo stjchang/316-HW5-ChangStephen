@@ -221,11 +221,11 @@ test('Test #12: Update song', async () => {
 test('Test #13: Update song listens', async () => {
     const songId = testSong._id;
     const updated = await db.updateSongById(songId, {
-        listens: 5
+        listens: 3
     });
 
     expect(updated).toBeDefined();
-    expect(updated.listens).toBe(5);
+    expect(updated.listens).toBe(3);
 });
 
 test('Test #14: Delete song', async () => {
